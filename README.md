@@ -1,5 +1,7 @@
 # Financial Planning Telegram Bot
 
+Try it out: [@just_daily_budget_bot](https://t.me/just_daily_budget_bot)
+
 A simple Telegram bot that helps you plan your daily spending limit.
 
 ## Features
