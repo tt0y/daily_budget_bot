@@ -1,0 +1,9 @@
+services:
+  daily_budget_bot:
+    build: .
+    volumes:
+      - ./data:/data
+    environment:
+      - DB_PATH=/data/finance_bot.db
+      - BOT_TOKEN=${BOT_TOKEN}
+    restart: unless-stopped
