@@ -173,9 +173,29 @@ async def calculate_budget(message: Message) -> None:
 
     await message.answer(response, parse_mode=ParseMode.MARKDOWN)
 
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+# ... existing imports ...
+from db import init_db, add_or_update_user, get_user, get_all_users
+
+async def send_daily_reminders(bot: Bot):
+    users = await get_all_users()
+    for user_id in users:
+        try:
+            # Simple localization can be added here if needed, but for now English/Default.
+            # Ideally use get_msg based on user language.
+             await bot.send_message(user_id, "Good morning! ☀️\nWhat is your current balance today? Send it to me to update your budget.")
+        except Exception as e:
+            logging.error(f"Failed to send reminder to {user_id}: {e}")
+
 async def main() -> None:
     await init_db()
     bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(send_daily_reminders, 'cron', hour=11, minute=0, args=[bot])
+    scheduler.start()
+
     await dp.start_polling(bot)
 
 if __name__ == "__main__":

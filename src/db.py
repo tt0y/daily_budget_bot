@@ -33,3 +33,9 @@ async def get_user(user_id: int):
             if row:
                 return {"income_day": row[0], "savings_percent": row[1]}
             return None
+
+async def get_all_users():
+    async with aiosqlite.connect(DB_NAME) as db:
+        async with db.execute('SELECT user_id FROM users') as cursor:
+            rows = await cursor.fetchall()
+            return [row[0] for row in rows]

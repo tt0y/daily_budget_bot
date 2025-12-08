@@ -3,3 +3,4 @@ pydantic-settings
 aiosqlite
 python-dotenv
 python-dateutil
+apscheduler

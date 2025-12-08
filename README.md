@@ -8,6 +8,9 @@ A simple Telegram bot that helps you plan your daily spending limit.
 - Set your income date and savings percentage.
 - Send your current balance to get a daily budget until your next income.
 - Persistent settings for each user.
+- **Daily Reminders**: The bot sends you a daily reminder at 11:00 AM to update your balance.
+
+> This bot helps you stick to your financial goals and improve financial discipline.
 
 ## Setup
 
