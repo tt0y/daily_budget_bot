@@ -44,9 +44,70 @@ async def command_help_handler(message: Message) -> None:
         "1. You set your **Income Day** and **Savings Percentage**.\n"
         "2. You send me your **Current Balance**.\n"
         "3. I calculate how much you can spend per day until your next income, saving the specified percentage.\n\n"
-        "To change your settings, type /settings."
+        "Commands:\n"
+        "/start - Initialize or update settings\n"
+        "/balance <amount> - Calculate budget for a specific balance (or just send the number)\n"
+        "/settings - Change your settings\n"
+        "/help - Show this help message"
     )
     await message.answer(help_text, parse_mode=ParseMode.MARKDOWN)
+
+@dp.message(Command("balance"))
+async def command_balance_handler(message: Message, command: Command = None) -> None:
+    # Check if arguments are provided
+    args = message.text.split()
+    if len(args) > 1:
+        # User provided balance like "/balance 1000"
+        try:
+             balance = float(args[1])
+             # Simulate a message with just the number to reuse logic, or call logic directly
+             # Let's reuse the logic function but we need to pass a message object or refactor.
+             # Refactoring logic out of handler is better, but for now let's just create a dummy message or modify logic.
+             # Easier: Just set message.text to the balance and call calculate_budget.
+             # But calculate_budget expects a message object.
+             # Let's call calculate_budget with the current message, but we need to ensure message.text is just the number for it to parse?
+             # No, calculate_budget parses message.text.
+             # Let's refactor calculate_budget to take balance as arg or handle the parsing better.
+             # Actually, simpler: just duplicate the logic small bit or make a shared function.
+             pass
+        except ValueError:
+             await message.answer("Please provide a valid number, e.g., /balance 1000")
+             return
+    else:
+        await message.answer("Please provide your balance, e.g., /balance 1000")
+        return
+
+    # Now run calculation
+    user_data = await get_user(message.from_user.id)
+    if not user_data:
+        await message.answer("Please type /start to set up your profile first.")
+        return
+
+    income_day = user_data['income_day']
+    savings_percent = user_data['savings_percent']
+
+    from logic import calculate_budget_plan
+    try:
+        if len(args) > 1:
+             current_balance = float(args[1])
+        else:
+             return # Already handled above
+    except ValueError:
+         await message.answer("Invalid format.")
+         return
+
+    plan = calculate_budget_plan(current_balance, income_day, savings_percent)
+    
+    response = (
+        f"💰 **Financial Plan**\n"
+        f"Next Income Date: {plan['target_date'].strftime('%Y-%m-%d')}\n"
+        f"Days Remaining: {plan['days_remaining']}\n"
+        f"Savings ({savings_percent}%): {plan['savings_amount']:.2f}\n"
+        f"Available to Spend: {plan['safe_to_spend_total']:.2f}\n"
+        f"**Daily Budget: {plan['daily_budget']:.2f}**"
+    )
+
+    await message.answer(response, parse_mode=ParseMode.MARKDOWN)
 
 @dp.message(Command("settings"))
 async def command_settings_handler(message: Message, state: FSMContext) -> None:

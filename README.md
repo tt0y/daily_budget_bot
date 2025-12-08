@@ -30,6 +30,7 @@ A simple Telegram bot that helps you plan your daily spending limit.
 
 ## Usage
 - `/start`: Initialize or update your settings (Income Day, Savings %).
+- `/balance <amount>`: Calculate budget for a specific balance (or just send the number).
 - `/settings`: Change your settings.
 - `/help`: Get help.
 - **Send a number**: Calculate your daily budget based on your saved settings.
