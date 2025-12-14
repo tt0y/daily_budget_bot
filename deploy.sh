@@ -28,6 +28,11 @@ if ! docker compose version &> /dev/null; then
     fi
 fi
 
+# Остановка контейнера и обновление
+echo -e "${GREEN}Останавливаем контейнер и обновляем код...${NC}"
+docker compose stop daily_budget_bot || true
+git pull
+
 # Создание .env если нет
 if [ ! -f .env ]; then
     if [ -f .env.example ]; then
