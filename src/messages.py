@@ -34,11 +34,7 @@ MESSAGES = {
         "choose_language": "Please choose your language / Пожалуйста, выберите язык:",
         "language_set": "Language set to English.",
         "btn_en": "🇬🇧 English",
-        "btn_ru": "🇷🇺 Русский",
-        "expense_added": "✅ Expense added: {amount}\nDesc: {description}",
-        "stats_header": "📊 <b>Statistics</b>",
-        "stats_today": "Today's Expenses: <b>{amount}</b>",
-        "expense_format_error": "Invalid format. Use: /expense 100 Description"
+        "btn_ru": "🇷🇺 Русский"
     },
     "ru": {
         "welcome_back": "Привет, <b>{name}</b>! С возвращением. Отправь мне текущий баланс, чтобы рассчитать дневной бюджет.",
@@ -64,8 +60,6 @@ MESSAGES = {
             "Команды:\n"
             "/start - Начать или изменить настройки\n"
             "/balance &lt;сумма&gt; - Рассчитать бюджет для конкретной суммы\n"
-            "/expense &lt;сумма&gt; &lt;описание&gt; - Добавить расход\n"
-            "/stats - Статистика за сегодня\n"
             "/settings - Изменить настройки\n"
             "/language - Change language / Сменить язык\n"
             "/help - Показать это сообщение"
@@ -77,11 +71,7 @@ MESSAGES = {
         "choose_language": "Please choose your language / Пожалуйста, выберите язык:",
         "language_set": "Язык установлен на Русский.",
         "btn_en": "🇬🇧 English",
-        "btn_ru": "🇷🇺 Русский",
-        "expense_added": "✅ Расход добавлен: {amount}\nОписание: {description}",
-        "stats_header": "📊 <b>Статистика</b>",
-        "stats_today": "Расходы сегодня: <b>{amount}</b>",
-        "expense_format_error": "Неверный формат. Используйте: /expense 100 Описание"
+        "btn_ru": "🇷🇺 Русский"
     }
 }
 

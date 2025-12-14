@@ -1,7 +1,6 @@
 
 import aiosqlite
 import os
-from datetime import datetime
 
 DB_NAME = os.getenv("DB_PATH", "finance_bot.db")
 
@@ -18,17 +17,6 @@ async def init_db():
                 monthly_income REAL DEFAULT 0
             )
         ''')
-        
-        await db.execute('''
-            CREATE TABLE IF NOT EXISTS expenses (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                amount REAL NOT NULL,
-                description TEXT,
-                date TIMESTAMP
-            )
-        ''')
-
         # Attempt to add columns if they don't exist
         try:
             await db.execute('ALTER TABLE users ADD COLUMN language TEXT DEFAULT "en"')
@@ -83,22 +71,3 @@ async def get_all_users():
         async with db.execute('SELECT user_id FROM users') as cursor:
             rows = await cursor.fetchall()
             return [row[0] for row in rows]
-
-async def add_expense(user_id: int, amount: float, description: str = None):
-    now = datetime.now()
-    async with aiosqlite.connect(DB_NAME) as db:
-        await db.execute('''
-            INSERT INTO expenses (user_id, amount, description, date)
-            VALUES (?, ?, ?, ?)
-        ''', (user_id, amount, description, now))
-        await db.commit()
-
-async def get_today_expenses(user_id: int):
-    today_str = datetime.now().strftime('%Y-%m-%d')
-    async with aiosqlite.connect(DB_NAME) as db:
-        async with db.execute('''
-            SELECT SUM(amount) FROM expenses 
-            WHERE user_id = ? AND date(date) = ?
-        ''', (user_id, today_str)) as cursor:
-            row = await cursor.fetchone()
-            return row[0] if row and row[0] else 0.0
