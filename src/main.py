@@ -15,7 +15,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from dotenv import load_dotenv
 
-from db import init_db, add_or_update_user, get_user, get_all_users, update_user_language
+from db import init_db, add_or_update_user, get_user, get_all_users, update_user_language, add_expense, get_today_expenses
 from messages import get_text, MESSAGES
 
 load_dotenv()
@@ -231,6 +231,36 @@ async def run_calculation(message: Message, user_data: dict, current_balance: fl
     )
 
     await message.answer(response, parse_mode=ParseMode.HTML)
+
+@dp.message(Command("expense"))
+async def command_expense_handler(message: Message) -> None:
+    user_data = await get_user(message.from_user.id)
+    lang = user_data.get('language', 'en') if user_data else 'en'
+    
+    args = message.text.split(maxsplit=2)
+    # /expense 100 Description
+    if len(args) < 2:
+        await message.answer(get_text("expense_format_error", lang))
+        return
+        
+    try:
+        amount = float(args[1])
+        description = args[2] if len(args) > 2 else ""
+        
+        await add_expense(message.from_user.id, amount, description)
+        await message.answer(get_text("expense_added", lang, amount=amount, description=description))
+        
+    except ValueError:
+        await message.answer(get_text("not_number", lang))
+
+@dp.message(Command("stats"))
+async def command_stats_handler(message: Message) -> None:
+    user_data = await get_user(message.from_user.id)
+    lang = user_data.get('language', 'en') if user_data else 'en'
+    
+    total = await get_today_expenses(message.from_user.id)
+    
+    await message.answer(get_text("stats_today", lang, amount=f"{total:.2f}"), parse_mode=ParseMode.HTML)
 
 # Scheduler
 async def send_daily_reminders(bot: Bot):
