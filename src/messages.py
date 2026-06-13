@@ -19,7 +19,8 @@ MESSAGES = {
             "This bot helps you plan your daily budget.\n\n"
             "1. You set your <b>Income Day</b>, <b>Monthly Income</b> and <b>Savings Percentage</b>.\n"
             "2. You send me your <b>Current Balance</b>.\n"
-            "3. I calculate how much you can spend per day until your next income, subtracting your target savings goal.\n\n"
+            "3. I calculate how much you can spend per day until your next income, subtracting your target savings goal.\n"
+            "4. Send your balance regularly and I'll also forecast how long your money will last at your current spending pace.\n\n"
             "Commands:\n"
             "/start - Initialize or update settings\n"
             "/balance &lt;amount&gt; - Calculate budget for a specific balance\n"
@@ -34,7 +35,14 @@ MESSAGES = {
         "choose_language": "Please choose your language / Пожалуйста, выберите язык:",
         "language_set": "Language set to English.",
         "btn_en": "🇬🇧 English",
-        "btn_ru": "🇷🇺 Русский"
+        "btn_ru": "🇷🇺 Русский",
+        "trend_line": "💸 At your current pace (~{rate}/day) the money will last about {days} more {days_word}.",
+        "trend_less_than_day": "💸 At your current pace (~{rate}/day) the money won't last another full day.",
+        "trend_ok": "✅ That covers the {days} {days_word} until your next income.",
+        "trend_risk": "⚠️ That's less than the {days} {days_word} until your next income — you risk going negative.",
+        "trend_no_data": "📊 Not enough data for a trend yet — send your balance again tomorrow and I'll estimate the dynamics.",
+        "trend_no_spending": "📊 Your balance isn't dropping — no spending detected yet.",
+        "trend_depleted": "⚠️ At the current balance the money has already run out."
     },
     "ru": {
         "welcome_back": "Привет, <b>{name}</b>! С возвращением. Отправь мне текущий баланс, чтобы рассчитать дневной бюджет.",
@@ -56,7 +64,8 @@ MESSAGES = {
             "Этот бот помогает планировать дневной бюджет.\n\n"
             "1. Ты указываешь <b>День дохода</b>, <b>Ежемесячный доход</b> и <b>Процент сбережений</b>.\n"
             "2. Ты отправляешь мне <b>Текущий баланс</b>.\n"
-            "3. Я рассчитываю, сколько можно тратить в день до следующего дохода, вычитая целевые сбережения.\n\n"
+            "3. Я рассчитываю, сколько можно тратить в день до следующего дохода, вычитая целевые сбережения.\n"
+            "4. Присылай баланс регулярно — и я ещё спрогнозирую, на сколько хватит денег при текущем темпе трат.\n\n"
             "Команды:\n"
             "/start - Начать или изменить настройки\n"
             "/balance &lt;сумма&gt; - Рассчитать бюджет для конкретной суммы\n"
@@ -71,7 +80,14 @@ MESSAGES = {
         "choose_language": "Please choose your language / Пожалуйста, выберите язык:",
         "language_set": "Язык установлен на Русский.",
         "btn_en": "🇬🇧 English",
-        "btn_ru": "🇷🇺 Русский"
+        "btn_ru": "🇷🇺 Русский",
+        "trend_line": "💸 При текущем темпе (~{rate}/день) денег хватит ещё примерно на {days} {days_word}.",
+        "trend_less_than_day": "💸 При текущем темпе (~{rate}/день) денег не хватит даже на день.",
+        "trend_ok": "✅ Этого хватит до следующего дохода ({days} {days_word}).",
+        "trend_risk": "⚠️ Это меньше, чем {days} {days_word} до следующего дохода — рискуешь уйти в минус.",
+        "trend_no_data": "📊 Пока мало данных для тренда — пришли баланс завтра, и я оценю динамику.",
+        "trend_no_spending": "📊 Баланс не снижается — расходов пока не вижу.",
+        "trend_depleted": "⚠️ При текущем балансе денег уже не осталось."
     }
 }
 
@@ -82,3 +98,51 @@ def get_text(key: str, lang: str = "en", **kwargs) -> str:
     if kwargs:
         return text.format(**kwargs)
     return text
+
+
+def _days_word(n: int, lang: str = "en") -> str:
+    """Correct word form for a number of days."""
+    n = abs(int(n))
+    if lang == "ru":
+        if n % 10 == 1 and n % 100 != 11:
+            return "день"
+        if 2 <= n % 10 <= 4 and not (12 <= n % 100 <= 14):
+            return "дня"
+        return "дней"
+    return "day" if n == 1 else "days"
+
+
+def get_trend_text(runway: dict, days_remaining: int, lang: str = "en") -> str:
+    """Build the spending-trend block from an estimate_runway() result.
+
+    Returns an empty string when there is nothing meaningful to show.
+    """
+    reason = runway.get("reason")
+
+    if reason == "insufficient_history":
+        return get_text("trend_no_data", lang)
+    if reason == "no_spending":
+        return get_text("trend_no_spending", lang)
+    if reason == "depleted":
+        return get_text("trend_depleted", lang)
+    if not runway.get("has_estimate"):
+        return ""
+
+    rate = f"{runway['daily_spend']:.2f}"
+    days_left = runway["days_left"]
+    days_int = int(days_left)  # floor: the money lasts at least this many full days
+
+    if days_int < 1:
+        line = get_text("trend_less_than_day", lang, rate=rate)
+    else:
+        line = get_text("trend_line", lang, rate=rate, days=days_int, days_word=_days_word(days_int, lang))
+
+    # Verdict: does the current pace carry the user to the next income?
+    verdict = ""
+    if days_remaining and days_remaining > 0:
+        if days_left + 1e-9 >= days_remaining:
+            verdict = get_text("trend_ok", lang, days=days_remaining, days_word=_days_word(days_remaining, lang))
+        else:
+            verdict = get_text("trend_risk", lang, days=days_remaining, days_word=_days_word(days_remaining, lang))
+
+    return f"{line}\n{verdict}".strip() if verdict else line

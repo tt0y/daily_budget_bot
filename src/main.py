@@ -15,8 +15,8 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from dotenv import load_dotenv
 
-from db import init_db, add_or_update_user, get_user, get_all_users, update_user_language
-from messages import get_text, MESSAGES
+from db import init_db, add_or_update_user, get_user, get_all_users, update_user_language, record_balance, get_balance_history
+from messages import get_text, get_trend_text, MESSAGES
 
 load_dotenv()
 
@@ -202,13 +202,13 @@ async def calculate_budget_message(message: Message) -> None:
         await message.answer(get_text("invalid_balance", lang))
         return
 
-    await run_calculation(message, user_data, current_balance, lang)
+    await run_calculation(message, user_data, current_balance, lang, record_history=True)
 
-async def run_calculation(message: Message, user_data: dict, current_balance: float, lang: str):
+async def run_calculation(message: Message, user_data: dict, current_balance: float, lang: str, record_history: bool = False):
     income_day = user_data['income_day']
     savings_percent = user_data['savings_percent']
     monthly_income = user_data.get('monthly_income', 0)
-    
+
     # Check if monthly_income is set properly (validation for old users)
     if not monthly_income or monthly_income <= 0:
         await message.answer(get_text("settings_incomplete", lang))
@@ -216,10 +216,18 @@ async def run_calculation(message: Message, user_data: dict, current_balance: fl
         # "Settings incomplete" message handles it.
         return
 
-    from logic import calculate_budget_plan
-    
-    plan = calculate_budget_plan(current_balance, income_day, savings_percent, monthly_income)
-    
+    from logic import calculate_budget_plan, estimate_runway
+
+    now = datetime.now()
+    plan = calculate_budget_plan(current_balance, income_day, savings_percent, monthly_income, now=now)
+
+    # Persist the reading (only on the "this is my real balance" path) and
+    # forecast how long the money lasts at the actual spending pace.
+    if record_history:
+        await record_balance(message.from_user.id, current_balance, now)
+    history = await get_balance_history(message.from_user.id)
+    runway = estimate_runway(history, current_balance, now=now)
+
     response = get_text("financial_plan", lang,
         next_income=plan['target_date'].strftime('%Y-%m-%d'),
         days_remaining=plan['days_remaining'],
@@ -229,6 +237,10 @@ async def run_calculation(message: Message, user_data: dict, current_balance: fl
         safe_to_spend=f"{plan['safe_to_spend_total']:.2f}",
         daily_budget=f"{plan['daily_budget']:.2f}"
     )
+
+    trend = get_trend_text(runway, plan['days_remaining'], lang)
+    if trend:
+        response = f"{response}\n\n{trend}"
 
     await message.answer(response, parse_mode=ParseMode.HTML)
 

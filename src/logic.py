@@ -1,5 +1,5 @@
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import calendar
 
@@ -47,3 +47,62 @@ def calculate_budget_plan(current_balance: float, income_day: int, savings_perce
         "safe_to_spend_total": safe_to_spend_total,
         "daily_budget": daily_budget
     }
+
+
+def estimate_runway(history, current_balance: float, now: datetime = None, window_days: int = 30):
+    """Estimate how long the money will last at the recent spending pace.
+
+    `history` is a list of (timestamp: datetime, balance: float) points. It is
+    expected to be the user's recorded balance readings over time. We derive the
+    daily burn rate from the differences between consecutive readings:
+      - declining/flat intervals are real spending and are averaged together;
+      - rising intervals (income or a top-up) are skipped, so they don't distort
+        the burn rate.
+    `days_left = current_balance / daily_spend`.
+
+    Returns a dict: {has_estimate, daily_spend, days_left, reason}. Possible
+    reasons: "ok", "depleted", "no_spending", "insufficient_history".
+    """
+    if now is None:
+        now = datetime.now()
+
+    points = sorted((p for p in history if p[0] is not None), key=lambda p: p[0])
+
+    # Prefer recent behavior, but fall back to the full history if the window
+    # leaves us with too few points to compute a difference.
+    if len(points) >= 2:
+        cutoff = now - timedelta(days=window_days)
+        windowed = [p for p in points if p[0] >= cutoff]
+        if len(windowed) >= 2:
+            points = windowed
+
+    if len(points) < 2:
+        return {"has_estimate": False, "daily_spend": None, "days_left": None, "reason": "insufficient_history"}
+
+    spent = 0.0
+    span_days = 0.0
+    for (t_prev, bal_prev), (t_curr, bal_curr) in zip(points, points[1:]):
+        dt_days = (t_curr - t_prev).total_seconds() / 86400.0
+        if dt_days <= 0:
+            continue
+        delta = bal_prev - bal_curr  # positive => money was spent
+        if delta < 0:
+            # Balance went up: income / top-up, not spending. Skip the interval.
+            continue
+        spent += delta
+        span_days += dt_days
+
+    if span_days <= 0:
+        # No usable spending intervals (single point, or only income jumps).
+        return {"has_estimate": False, "daily_spend": None, "days_left": None, "reason": "insufficient_history"}
+
+    daily_spend = spent / span_days
+    if daily_spend <= 0:
+        # Balance never declined over the observed period.
+        return {"has_estimate": False, "daily_spend": 0.0, "days_left": None, "reason": "no_spending"}
+
+    if current_balance <= 0:
+        return {"has_estimate": True, "daily_spend": daily_spend, "days_left": 0.0, "reason": "depleted"}
+
+    days_left = current_balance / daily_spend
+    return {"has_estimate": True, "daily_spend": daily_spend, "days_left": days_left, "reason": "ok"}

@@ -1,6 +1,7 @@
 
 import aiosqlite
 import os
+from datetime import datetime
 
 DB_NAME = os.getenv("DB_PATH", "finance_bot.db")
 
@@ -17,6 +18,19 @@ async def init_db():
                 monthly_income REAL DEFAULT 0
             )
         ''')
+
+        # One balance reading per user per day (latest wins). Used to derive the
+        # actual spending pace for the budget trend forecast.
+        await db.execute('''
+            CREATE TABLE IF NOT EXISTS balance_history (
+                user_id INTEGER NOT NULL,
+                snapshot_date TEXT NOT NULL,
+                balance REAL NOT NULL,
+                recorded_at TEXT NOT NULL,
+                PRIMARY KEY (user_id, snapshot_date)
+            )
+        ''')
+
         # Attempt to add columns if they don't exist
         try:
             await db.execute('ALTER TABLE users ADD COLUMN language TEXT DEFAULT "en"')
@@ -71,3 +85,37 @@ async def get_all_users():
         async with db.execute('SELECT user_id FROM users') as cursor:
             rows = await cursor.fetchall()
             return [row[0] for row in rows]
+
+async def record_balance(user_id: int, balance: float, now: datetime = None):
+    """Store today's balance reading (one row per user per day, latest wins)."""
+    if now is None:
+        now = datetime.now()
+    snapshot_date = now.strftime('%Y-%m-%d')
+    recorded_at = now.isoformat(timespec='seconds')
+    async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute('''
+            INSERT INTO balance_history (user_id, snapshot_date, balance, recorded_at)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(user_id, snapshot_date) DO UPDATE SET
+                balance = excluded.balance,
+                recorded_at = excluded.recorded_at
+        ''', (user_id, snapshot_date, balance, recorded_at))
+        await db.commit()
+
+async def get_balance_history(user_id: int):
+    """Return [(timestamp: datetime, balance: float), ...] ordered oldest first."""
+    async with aiosqlite.connect(DB_NAME) as db:
+        async with db.execute('''
+            SELECT recorded_at, balance FROM balance_history
+            WHERE user_id = ?
+            ORDER BY recorded_at ASC
+        ''', (user_id,)) as cursor:
+            rows = await cursor.fetchall()
+            history = []
+            for recorded_at, balance in rows:
+                try:
+                    ts = datetime.fromisoformat(recorded_at)
+                except (TypeError, ValueError):
+                    continue
+                history.append((ts, balance))
+            return history
