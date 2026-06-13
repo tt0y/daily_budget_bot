@@ -82,15 +82,18 @@ def estimate_runway(history, current_balance: float, now: datetime = None, windo
     spent = 0.0
     span_days = 0.0
     for (t_prev, bal_prev), (t_curr, bal_curr) in zip(points, points[1:]):
-        dt_days = (t_curr - t_prev).total_seconds() / 86400.0
-        if dt_days <= 0:
-            continue
         delta = bal_prev - bal_curr  # positive => money was spent
         if delta < 0:
             # Balance went up: income / top-up, not spending. Skip the interval.
             continue
+        elapsed_days = (t_curr - t_prev).total_seconds() / 86400.0
+        # Treat each reading as at least one day of progression. This keeps the
+        # daily rate sane when several readings land on the same day (e.g.
+        # back-filling a month in one sitting), stays exact for the intended
+        # one-reading-per-day cadence, and remains correct across skipped days.
+        step_days = max(elapsed_days, 1.0)
         spent += delta
-        span_days += dt_days
+        span_days += step_days
 
     if span_days <= 0:
         # No usable spending intervals (single point, or only income jumps).

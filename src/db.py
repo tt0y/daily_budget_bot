@@ -19,17 +19,37 @@ async def init_db():
             )
         ''')
 
-        # One balance reading per user per day (latest wins). Used to derive the
-        # actual spending pace for the budget trend forecast.
-        await db.execute('''
-            CREATE TABLE IF NOT EXISTS balance_history (
-                user_id INTEGER NOT NULL,
-                snapshot_date TEXT NOT NULL,
-                balance REAL NOT NULL,
-                recorded_at TEXT NOT NULL,
-                PRIMARY KEY (user_id, snapshot_date)
-            )
-        ''')
+        # Balance history: one row per reading (append-only), used to derive the
+        # spending pace for the trend forecast. An earlier version keyed the table
+        # by (user_id, snapshot_date), which collapsed several readings on the same
+        # day into one row and starved the trend — migrate that schema away.
+        async with db.execute("PRAGMA table_info(balance_history)") as cursor:
+            bh_columns = [row[1] for row in await cursor.fetchall()]
+
+        if not bh_columns:
+            await db.execute('''
+                CREATE TABLE balance_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    balance REAL NOT NULL,
+                    recorded_at TEXT NOT NULL
+                )
+            ''')
+        elif 'snapshot_date' in bh_columns:
+            await db.execute('ALTER TABLE balance_history RENAME TO balance_history_old')
+            await db.execute('''
+                CREATE TABLE balance_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    balance REAL NOT NULL,
+                    recorded_at TEXT NOT NULL
+                )
+            ''')
+            await db.execute('''
+                INSERT INTO balance_history (user_id, balance, recorded_at)
+                SELECT user_id, balance, recorded_at FROM balance_history_old
+            ''')
+            await db.execute('DROP TABLE balance_history_old')
 
         # Attempt to add columns if they don't exist
         try:
@@ -87,19 +107,15 @@ async def get_all_users():
             return [row[0] for row in rows]
 
 async def record_balance(user_id: int, balance: float, now: datetime = None):
-    """Store today's balance reading (one row per user per day, latest wins)."""
+    """Append a balance reading (one row per reading)."""
     if now is None:
         now = datetime.now()
-    snapshot_date = now.strftime('%Y-%m-%d')
     recorded_at = now.isoformat(timespec='seconds')
     async with aiosqlite.connect(DB_NAME) as db:
         await db.execute('''
-            INSERT INTO balance_history (user_id, snapshot_date, balance, recorded_at)
-            VALUES (?, ?, ?, ?)
-            ON CONFLICT(user_id, snapshot_date) DO UPDATE SET
-                balance = excluded.balance,
-                recorded_at = excluded.recorded_at
-        ''', (user_id, snapshot_date, balance, recorded_at))
+            INSERT INTO balance_history (user_id, balance, recorded_at)
+            VALUES (?, ?, ?)
+        ''', (user_id, balance, recorded_at))
         await db.commit()
 
 async def get_balance_history(user_id: int):
@@ -108,7 +124,7 @@ async def get_balance_history(user_id: int):
         async with db.execute('''
             SELECT recorded_at, balance FROM balance_history
             WHERE user_id = ?
-            ORDER BY recorded_at ASC
+            ORDER BY recorded_at ASC, id ASC
         ''', (user_id,)) as cursor:
             rows = await cursor.fetchall()
             history = []

@@ -151,6 +151,32 @@ class TestRunway(unittest.TestCase):
         self.assertEqual(res['reason'], 'depleted')
         self.assertEqual(res['days_left'], 0.0)
 
+    def test_two_readings_same_day(self):
+        # A trend must appear from the second reading, even on the same day:
+        # each reading counts as at least one day of progression.
+        t = datetime(2026, 6, 13, 12, 0, 0)
+        history = [(t, 1000), (t.replace(minute=5), 900)]
+        res = estimate_runway(history, 900, now=t.replace(minute=5))
+        self.assertTrue(res['has_estimate'])
+        self.assertAlmostEqual(res['daily_spend'], 100.0)  # 100 over max(elapsed, 1) = 1 day
+        self.assertAlmostEqual(res['days_left'], 9.0)
+
+    def test_same_day_backfilled_sequence(self):
+        # The reported bug: several balances entered within the same minute.
+        # 1130 -> 1082 -> 943 -> 879 = 251 spent over 3 steps (~3 days).
+        t = datetime(2026, 6, 13, 12, 20, 32)
+        history = [
+            (t, 1130),
+            (t.replace(second=37), 1082),
+            (t.replace(second=43), 943),
+            (t.replace(second=48), 879),
+        ]
+        res = estimate_runway(history, 879, now=t.replace(second=48))
+        self.assertTrue(res['has_estimate'])
+        self.assertEqual(res['reason'], 'ok')
+        self.assertAlmostEqual(res['daily_spend'], 251 / 3)
+        self.assertAlmostEqual(res['days_left'], 879 / (251 / 3))
+
 
 if __name__ == '__main__':
     unittest.main()

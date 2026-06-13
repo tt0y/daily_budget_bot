@@ -40,7 +40,7 @@ MESSAGES = {
         "trend_less_than_day": "💸 At your current pace (~{rate}/day) the money won't last another full day.",
         "trend_ok": "✅ That covers the {days} {days_word} until your next income.",
         "trend_risk": "⚠️ That's less than the {days} {days_word} until your next income — you risk going negative.",
-        "trend_no_data": "📊 Not enough data for a trend yet — send your balance again tomorrow and I'll estimate the dynamics.",
+        "trend_no_data": "📊 Not enough data for a trend yet — send one more balance reading and I'll estimate the dynamics.",
         "trend_no_spending": "📊 Your balance isn't dropping — no spending detected yet.",
         "trend_depleted": "⚠️ At the current balance the money has already run out."
     },
@@ -85,7 +85,7 @@ MESSAGES = {
         "trend_less_than_day": "💸 При текущем темпе (~{rate}/день) денег не хватит даже на день.",
         "trend_ok": "✅ Этого хватит до следующего дохода ({days} {days_word}).",
         "trend_risk": "⚠️ Это меньше, чем {days} {days_word} до следующего дохода — рискуешь уйти в минус.",
-        "trend_no_data": "📊 Пока мало данных для тренда — пришли баланс завтра, и я оценю динамику.",
+        "trend_no_data": "📊 Пока мало данных для тренда — пришли ещё одно значение баланса, и я оценю динамику.",
         "trend_no_spending": "📊 Баланс не снижается — расходов пока не вижу.",
         "trend_depleted": "⚠️ При текущем балансе денег уже не осталось."
     }
