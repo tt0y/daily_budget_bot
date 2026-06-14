@@ -31,7 +31,7 @@ try:
     )
     from expense_parser import parse_manual_expense
     from messages import get_text, get_trend_text, MESSAGES
-    from receipt_formatter import format_receipt_summary
+    from receipt_formatter import format_receipt_summary, receipt_expense_rows
     from receipt_parser import (
         ReceiptData,
         ReceiptParserError,
@@ -56,7 +56,7 @@ except ImportError:
     )
     from .expense_parser import parse_manual_expense
     from .messages import get_text, get_trend_text, MESSAGES
-    from .receipt_formatter import format_receipt_summary
+    from .receipt_formatter import format_receipt_summary, receipt_expense_rows
     from .receipt_parser import (
         ReceiptData,
         ReceiptParserError,
@@ -473,21 +473,13 @@ async def download_receipt_file(message: Message, source_type: str) -> tuple[byt
     return buffer.getvalue(), document.mime_type or "application/octet-stream", document.file_name
 
 async def save_receipt(user_id: int, receipt: ReceiptData, source_type: str) -> int:
-    items = [
-        {
-            "amount": item.amount,
-            "description": item.name,
-            "category": item.category,
-        }
-        for item in receipt.items
-    ]
     return await add_receipt_expenses(
         user_id=user_id,
         merchant=receipt.merchant,
         purchased_at=receipt.purchased_at,
         total=receipt.total,
         currency=receipt.currency,
-        items=items,
+        items=receipt_expense_rows(receipt),
         source_type=source_type,
     )
 
