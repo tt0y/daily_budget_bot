@@ -153,6 +153,48 @@ class TestReceiptDatabase(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(totals[0]["category"], "pet_project")
         self.assertAlmostEqual(totals[0]["amount"], 10.0)
 
+    async def test_expense_year_stats_use_expense_date(self):
+        await db_module.add_receipt_expenses(
+            user_id=42,
+            merchant="Current year receipt",
+            purchased_at="2026-01-02T12:00:00",
+            total=10.0,
+            currency="EUR",
+            items=[
+                {"description": "FRUIT", "amount": 10.0, "category": "groceries"},
+            ],
+        )
+        await db_module.add_receipt_expenses(
+            user_id=42,
+            merchant="Previous year receipt",
+            purchased_at="2025-12-31T12:00:00",
+            total=5.0,
+            currency="EUR",
+            items=[
+                {"description": "BOOK", "amount": 5.0, "category": "books"},
+            ],
+        )
+        await db_module.add_receipt_expenses(
+            user_id=42,
+            merchant="Next year receipt",
+            purchased_at="2027-01-01T12:00:00",
+            total=3.0,
+            currency="EUR",
+            items=[
+                {"description": "SOAP", "amount": 3.0, "category": "home"},
+            ],
+        )
+
+        totals = await db_module.get_expense_totals(
+            user_id=42,
+            period="expense_year",
+            now=datetime(2026, 6, 14),
+        )
+
+        self.assertEqual(len(totals), 1)
+        self.assertEqual(totals[0]["category"], "groceries")
+        self.assertAlmostEqual(totals[0]["amount"], 10.0)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -41,7 +41,9 @@ A simple Telegram bot that helps you plan your daily spending limit.
 - `/settings`: Change your settings.
 - `/stats`: Show expenses added today by category.
 - `/stats month`: Show current-month expenses by purchase/receipt date.
+- `/stats year`: Show current-year expenses by purchase/receipt date.
 - `/stats all`: Show all saved expenses by category.
+- `/stats_month`, `/stats_year`, `/stats_all`: Direct command-menu shortcuts for the same stats periods.
 - `/help`: Open the navigation menu with buttons for balance, expenses, receipts, stats, settings, and language.
 - **Send a number**: Calculate your daily budget based on your saved settings.
 - **Send a manual expense**: `20 euro at the barber`, `10 euro for pet-project hosting`, `5 euro for fruit`.

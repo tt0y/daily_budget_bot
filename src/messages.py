@@ -28,11 +28,15 @@ MESSAGES = {
             "• Send a receipt as a photo, image file, or PDF to save its itemized expenses.\n"
             "• Send <code>/stats</code> to see expenses added today.\n"
             "• Send <code>/stats month</code> to see the current month by expense date.\n"
+            "• Send <code>/stats year</code> to see the current year by expense date.\n"
             "• Send <code>/stats all</code> to see all saved expenses.\n\n"
             "Commands:\n"
             "/start - Initialize or update settings\n"
             "/balance &lt;amount&gt; - Calculate budget for a specific balance\n"
-            "/stats [month|all] - Show saved expenses grouped by category\n"
+            "/stats [month|year|all] - Show saved expenses grouped by category\n"
+            "/stats_month - Show the current month\n"
+            "/stats_year - Show the current year\n"
+            "/stats_all - Show all saved expenses\n"
             "/settings - Change your settings\n"
             "/language - Change language / Сменить язык\n"
             "/help - Show this help message"
@@ -67,16 +71,19 @@ MESSAGES = {
         "receipt_total_mismatch": "Check the total: items add up to {items_total}, receipt total is {receipt_total}.",
         "stats_header_added_today": "📊 <b>Added today</b>",
         "stats_header_expense_month": "📊 <b>Current month by expense date</b>",
+        "stats_header_expense_year": "📊 <b>Current year by expense date</b>",
         "stats_header_all": "📊 <b>All saved expenses</b>",
         "stats_empty_added_today": "No expenses were added today yet.",
         "stats_empty_expense_month": "No expenses with dates in the current month yet.",
+        "stats_empty_expense_year": "No expenses with dates in the current year yet.",
         "stats_empty_all": "No expenses saved yet.",
         "stats_total": "<b>Total: {amount}</b>",
-        "stats_usage": "Use <code>/stats</code>, <code>/stats month</code>, or <code>/stats all</code>.",
+        "stats_usage": "Use <code>/stats</code>, <code>/stats month</code>, <code>/stats year</code>, or <code>/stats all</code>.",
         "unsupported_message": "Send me a number for your current balance, a manual expense like <code>20 euro at the barber</code>, or a receipt photo/PDF.",
         "manual_expense_added": "✅ Expense saved: <b>{amount}</b>\nCategory: <b>{category}</b>\nDescription: {description}",
         "btn_stats_today": "📊 Today's stats",
         "btn_stats_month": "📅 Month",
+        "btn_stats_year": "Year",
         "btn_stats_all": "All",
         "btn_menu_balance": "💰 Balance",
         "btn_menu_expense": "✍️ Expense",
@@ -98,6 +105,7 @@ MESSAGES = {
             "Choose a period:\n"
             "• Today - expenses added today.\n"
             "• Month - current month by expense date.\n"
+            "• Year - current year by expense date.\n"
             "• All - everything saved."
         ),
         "menu_settings_text": (
@@ -156,11 +164,15 @@ MESSAGES = {
             "• Пришли чек обычным фото, файлом-картинкой или PDF — я сохраню позиции как расходы.\n"
             "• Пришли <code>/stats</code>, чтобы увидеть расходы, добавленные сегодня.\n"
             "• Пришли <code>/stats month</code>, чтобы увидеть текущий месяц по датам расходов.\n"
+            "• Пришли <code>/stats year</code>, чтобы увидеть текущий год по датам расходов.\n"
             "• Пришли <code>/stats all</code>, чтобы увидеть все сохраненные расходы.\n\n"
             "Команды:\n"
             "/start - Начать или изменить настройки\n"
             "/balance &lt;сумма&gt; - Рассчитать бюджет для конкретной суммы\n"
-            "/stats [month|all] - Сохраненные расходы по категориям\n"
+            "/stats [month|year|all] - Сохраненные расходы по категориям\n"
+            "/stats_month - Статистика за текущий месяц\n"
+            "/stats_year - Статистика за текущий год\n"
+            "/stats_all - Все сохраненные расходы\n"
             "/settings - Изменить настройки\n"
             "/language - Change language / Сменить язык\n"
             "/help - Показать это сообщение"
@@ -195,16 +207,19 @@ MESSAGES = {
         "receipt_total_mismatch": "Проверь сумму: позиции дают {items_total}, а итог чека {receipt_total}.",
         "stats_header_added_today": "📊 <b>Добавлено сегодня</b>",
         "stats_header_expense_month": "📊 <b>Текущий месяц по датам расходов</b>",
+        "stats_header_expense_year": "📊 <b>Текущий год по датам расходов</b>",
         "stats_header_all": "📊 <b>Все сохраненные расходы</b>",
         "stats_empty_added_today": "Сегодня пока ничего не добавлено.",
         "stats_empty_expense_month": "В текущем месяце по датам расходов пока ничего нет.",
+        "stats_empty_expense_year": "В текущем году по датам расходов пока ничего нет.",
         "stats_empty_all": "Сохраненных расходов пока нет.",
         "stats_total": "<b>Всего: {amount}</b>",
-        "stats_usage": "Используй <code>/stats</code>, <code>/stats month</code> или <code>/stats all</code>.",
+        "stats_usage": "Используй <code>/stats</code>, <code>/stats month</code>, <code>/stats year</code> или <code>/stats all</code>.",
         "unsupported_message": "Пришли число для текущего баланса, ручной расход вроде <code>20 евро в парикмахерской</code> или фото/PDF чека.",
         "manual_expense_added": "✅ Расход сохранен: <b>{amount}</b>\nКатегория: <b>{category}</b>\nОписание: {description}",
         "btn_stats_today": "📊 Статистика за сегодня",
         "btn_stats_month": "📅 Месяц",
+        "btn_stats_year": "Год",
         "btn_stats_all": "Всё",
         "btn_menu_balance": "💰 Баланс",
         "btn_menu_expense": "✍️ Расход",
@@ -226,6 +241,7 @@ MESSAGES = {
             "Выбери период:\n"
             "• Сегодня - расходы, добавленные сегодня.\n"
             "• Месяц - текущий месяц по датам расходов.\n"
+            "• Год - текущий год по датам расходов.\n"
             "• Всё - все сохраненные расходы."
         ),
         "menu_settings_text": (

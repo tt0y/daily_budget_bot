@@ -89,6 +89,10 @@ STATS_PERIOD_ALIASES = {
     "monthly": "expense_month",
     "месяц": "expense_month",
     "за месяц": "expense_month",
+    "year": "expense_year",
+    "annual": "expense_year",
+    "год": "expense_year",
+    "за год": "expense_year",
     "all": "all",
     "total": "all",
     "все": "all",
@@ -105,7 +109,10 @@ dp = Dispatcher()
 
 BOT_COMMANDS = [
     BotCommand(command="help", description="Помощь / Help"),
-    BotCommand(command="stats", description="Статистика / Stats"),
+    BotCommand(command="stats", description="Сегодня / Today"),
+    BotCommand(command="stats_month", description="Месяц / Month"),
+    BotCommand(command="stats_year", description="Год / Year"),
+    BotCommand(command="stats_all", description="Всё / All"),
     BotCommand(command="balance", description="Баланс / Balance"),
     BotCommand(command="settings", description="Настройки / Settings"),
     BotCommand(command="language", description="Язык / Language"),
@@ -161,6 +168,9 @@ def get_stats_menu_keyboard(lang: str):
         ],
         [
             InlineKeyboardButton(text=get_text("btn_stats_month", lang), callback_data="menu_stats_month"),
+            InlineKeyboardButton(text=get_text("btn_stats_year", lang), callback_data="menu_stats_year")
+        ],
+        [
             InlineKeyboardButton(text=get_text("btn_stats_all", lang), callback_data="menu_stats_all")
         ],
         [
@@ -263,6 +273,7 @@ async def menu_callback_handler(callback: CallbackQuery, state: FSMContext):
         action = {
             "stats": "stats_today",
             "stats_month": "stats_month",
+            "stats_year": "stats_year",
             "stats_all": "stats_all",
             "receipt": "receipt",
             "expense": "expense",
@@ -288,6 +299,7 @@ async def menu_callback_handler(callback: CallbackQuery, state: FSMContext):
             period = {
                 "stats_today": "added_today",
                 "stats_month": "expense_month",
+                "stats_year": "expense_year",
                 "stats_all": "all",
             }.get(action, "added_today")
             stats_text = await build_stats_text(callback.from_user.id, lang, period)
@@ -417,7 +429,31 @@ async def command_stats_handler(message: Message) -> None:
         await message.answer(get_text("stats_usage", lang), parse_mode=ParseMode.HTML)
         return
 
-    stats_text = await build_stats_text(message.from_user.id, lang, stats_period)
+    await send_stats(message, lang, stats_period)
+
+@dp.message(Command("stats_month"))
+async def command_stats_month_handler(message: Message) -> None:
+    await command_stats_shortcut_handler(message, "expense_month")
+
+@dp.message(Command("stats_year"))
+async def command_stats_year_handler(message: Message) -> None:
+    await command_stats_shortcut_handler(message, "expense_year")
+
+@dp.message(Command("stats_all"))
+async def command_stats_all_handler(message: Message) -> None:
+    await command_stats_shortcut_handler(message, "all")
+
+async def command_stats_shortcut_handler(message: Message, period: str) -> None:
+    user_data = await get_user(message.from_user.id)
+    if not user_data:
+        await message.answer(get_text("start_first", "en"))
+        return
+
+    lang = user_data.get('language', 'en')
+    await send_stats(message, lang, period)
+
+async def send_stats(message: Message, lang: str, period: str) -> None:
+    stats_text = await build_stats_text(message.from_user.id, lang, period)
     await message.answer(stats_text, parse_mode=ParseMode.HTML)
 
 def parse_stats_period(text: str | None) -> str | None:

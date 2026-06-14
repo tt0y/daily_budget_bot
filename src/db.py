@@ -281,6 +281,11 @@ async def get_expense_totals(user_id: int, period: str = "added_today", now: dat
         next_month = (now.replace(day=1) + relativedelta(months=1)).strftime('%Y-%m-%d')
         where.append(f"date({date_column}) >= ? AND date({date_column}) < ?")
         params.extend([month_start, next_month])
+    elif period == "expense_year":
+        year_start = now.replace(month=1, day=1).strftime('%Y-%m-%d')
+        next_year = (now.replace(month=1, day=1) + relativedelta(years=1)).strftime('%Y-%m-%d')
+        where.append(f"date({date_column}) >= ? AND date({date_column}) < ?")
+        params.extend([year_start, next_year])
     elif period == "all":
         pass
     else:
