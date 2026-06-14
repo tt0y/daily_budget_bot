@@ -59,6 +59,18 @@ def get_language_keyboard():
     ])
     return keyboard
 
+def get_help_keyboard(lang: str):
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text=get_text("btn_stats_today", lang), callback_data="help_stats")
+        ],
+        [
+            InlineKeyboardButton(text=get_text("btn_receipt_help", lang), callback_data="help_receipt"),
+            InlineKeyboardButton(text=get_text("btn_balance_help", lang), callback_data="help_balance")
+        ],
+    ])
+    return keyboard
+
 @dp.message(CommandStart())
 async def command_start_handler(message: Message, state: FSMContext) -> None:
     user_data = await get_user(message.from_user.id)
@@ -80,7 +92,7 @@ async def command_help_handler(message: Message) -> None:
     lang = user_data.get('language', 'en') if user_data else 'en'
     
     help_text = get_text("help_text", lang)
-    await message.answer(help_text, parse_mode=ParseMode.HTML)
+    await message.answer(help_text, parse_mode=ParseMode.HTML, reply_markup=get_help_keyboard(lang))
 
 @dp.message(Command("language"))
 async def command_language_handler(message: Message, state: FSMContext) -> None:
@@ -115,6 +127,25 @@ async def language_callback_handler(callback: CallbackQuery, state: FSMContext):
         
         await state.set_state(Settings.income_day)
         await callback.answer()
+
+@dp.callback_query(F.data.startswith("help_"))
+async def help_callback_handler(callback: CallbackQuery):
+    user_data = await get_user(callback.from_user.id)
+    lang = user_data.get('language', 'en') if user_data else 'en'
+    action = callback.data.split("_", 1)[1]
+
+    if action == "stats":
+        if not user_data:
+            await callback.message.answer(get_text("start_first", "en"))
+        else:
+            stats_text = await build_today_stats_text(callback.from_user.id, lang)
+            await callback.message.answer(stats_text, parse_mode=ParseMode.HTML)
+    elif action == "receipt":
+        await callback.message.answer(get_text("help_receipt_example", lang), parse_mode=ParseMode.HTML)
+    elif action == "balance":
+        await callback.message.answer(get_text("help_balance_example", lang), parse_mode=ParseMode.HTML)
+
+    await callback.answer()
 
 @dp.message(Command("balance"))
 async def command_balance_handler(message: Message, command: Command = None) -> None:
@@ -213,10 +244,13 @@ async def command_stats_handler(message: Message) -> None:
         return
 
     lang = user_data.get('language', 'en')
-    totals = await get_today_expense_totals(message.from_user.id)
+    stats_text = await build_today_stats_text(message.from_user.id, lang)
+    await message.answer(stats_text, parse_mode=ParseMode.HTML)
+
+async def build_today_stats_text(user_id: int, lang: str) -> str:
+    totals = await get_today_expense_totals(user_id)
     if not totals:
-        await message.answer(get_text("stats_empty", lang))
-        return
+        return get_text("stats_empty", lang)
 
     lines = [get_text("stats_header", lang)]
     grand_total = 0.0
@@ -227,7 +261,7 @@ async def command_stats_handler(message: Message) -> None:
             f"{row['amount']:.2f} ({row['count']})"
         )
     lines.append(get_text("stats_total", lang, amount=f"{grand_total:.2f}"))
-    await message.answer("\n".join(lines), parse_mode=ParseMode.HTML)
+    return "\n".join(lines)
 
 @dp.message(F.photo)
 async def receipt_photo_handler(message: Message) -> None:
