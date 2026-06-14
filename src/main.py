@@ -16,29 +16,56 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from dotenv import load_dotenv
 
-from db import (
-    init_db,
-    add_or_update_user,
-    get_user,
-    get_all_users,
-    update_user_language,
-    record_balance,
-    get_balance_history,
-    add_receipt_expenses,
-    get_expense_totals,
-    add_expense,
-)
-from expense_parser import parse_manual_expense
-from messages import get_text, get_trend_text, MESSAGES
-from receipt_parser import (
-    ReceiptData,
-    ReceiptParserError,
-    ReceiptParserUnavailable,
-    category_label,
-    is_supported_receipt_file,
-    parse_receipt_file,
-    summarize_categories,
-)
+try:
+    from db import (
+        init_db,
+        add_or_update_user,
+        get_user,
+        get_all_users,
+        update_user_language,
+        record_balance,
+        get_balance_history,
+        add_receipt_expenses,
+        get_expense_totals,
+        add_expense,
+    )
+    from expense_parser import parse_manual_expense
+    from messages import get_text, get_trend_text, MESSAGES
+    from receipt_formatter import format_receipt_summary
+    from receipt_parser import (
+        ReceiptData,
+        ReceiptParserError,
+        ReceiptParserUnavailable,
+        category_label,
+        is_supported_receipt_file,
+        parse_receipt_file,
+        summarize_categories,
+    )
+except ImportError:
+    from .db import (
+        init_db,
+        add_or_update_user,
+        get_user,
+        get_all_users,
+        update_user_language,
+        record_balance,
+        get_balance_history,
+        add_receipt_expenses,
+        get_expense_totals,
+        add_expense,
+    )
+    from .expense_parser import parse_manual_expense
+    from .messages import get_text, get_trend_text, MESSAGES
+    from .receipt_formatter import format_receipt_summary
+    from .receipt_parser import (
+        ReceiptData,
+        ReceiptParserError,
+        ReceiptParserUnavailable,
+        category_label,
+        is_supported_receipt_file,
+        parse_receipt_file,
+        summarize_categories,
+    )
 
 load_dotenv()
 
@@ -463,50 +490,6 @@ async def save_receipt(user_id: int, receipt: ReceiptData, source_type: str) -> 
         items=items,
         source_type=source_type,
     )
-
-def format_receipt_summary(receipt: ReceiptData, lang: str) -> str:
-    merchant = html.quote(receipt.merchant or get_text("receipt_unknown_store", lang))
-    total_value = receipt.total if receipt.total is not None else receipt.items_total
-    lines = [
-        get_text(
-            "receipt_saved",
-            lang,
-            merchant=merchant,
-            total=f"{total_value:.2f}",
-            currency=html.quote(receipt.currency),
-            count=len(receipt.items),
-        ),
-        "",
-        get_text("receipt_categories_header", lang),
-    ]
-
-    for category_id, amount, count in summarize_categories(receipt.items):
-        lines.append(f"• {html.quote(category_label(category_id, lang))}: {amount:.2f} ({count})")
-
-    shown_items = receipt.items[:8]
-    if shown_items:
-        lines.append("")
-        lines.append(get_text("receipt_items_header", lang))
-        for item in shown_items:
-            lines.append(
-                f"• {html.quote(item.name)} - {item.amount:.2f} "
-                f"-> {html.quote(category_label(item.category, lang))}"
-            )
-
-    hidden_count = len(receipt.items) - len(shown_items)
-    if hidden_count > 0:
-        lines.append(get_text("receipt_more_items", lang, count=hidden_count))
-
-    if receipt.total is not None and abs(receipt.items_total - receipt.total) > 0.05:
-        lines.append("")
-        lines.append(get_text(
-            "receipt_total_mismatch",
-            lang,
-            items_total=f"{receipt.items_total:.2f}",
-            receipt_total=f"{receipt.total:.2f}",
-        ))
-
-    return "\n".join(lines)
 
 @dp.message()
 async def calculate_budget_message(message: Message) -> None:
