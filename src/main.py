@@ -13,7 +13,14 @@ from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import (
+    BotCommand,
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    MenuButtonCommands,
+    Message,
+)
 from dotenv import load_dotenv
 
 try:
@@ -95,6 +102,23 @@ class Settings(StatesGroup):
     savings_percent = State()
 
 dp = Dispatcher()
+
+BOT_COMMANDS = [
+    BotCommand(command="help", description="Помощь / Help"),
+    BotCommand(command="stats", description="Статистика / Stats"),
+    BotCommand(command="balance", description="Баланс / Balance"),
+    BotCommand(command="settings", description="Настройки / Settings"),
+    BotCommand(command="language", description="Язык / Language"),
+    BotCommand(command="start", description="Старт / Start"),
+]
+
+
+async def configure_bot_menu(bot: Bot) -> None:
+    try:
+        await bot.set_my_commands(BOT_COMMANDS)
+        await bot.set_chat_menu_button(menu_button=MenuButtonCommands())
+    except Exception:
+        logging.exception("Failed to configure Telegram command menu")
 
 def get_language_keyboard():
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -579,6 +603,7 @@ async def send_daily_reminders(bot: Bot):
 async def main() -> None:
     await init_db()
     bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    await configure_bot_menu(bot)
     
     from apscheduler.schedulers.asyncio import AsyncIOScheduler
     scheduler = AsyncIOScheduler()
