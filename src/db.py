@@ -51,6 +51,50 @@ async def init_db():
             ''')
             await db.execute('DROP TABLE balance_history_old')
 
+        await db.execute('''
+            CREATE TABLE IF NOT EXISTS receipts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                merchant TEXT,
+                purchased_at TEXT,
+                total REAL,
+                currency TEXT DEFAULT 'EUR',
+                source_type TEXT,
+                created_at TEXT NOT NULL
+            )
+        ''')
+
+        await db.execute('''
+            CREATE TABLE IF NOT EXISTS expenses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                receipt_id INTEGER,
+                user_id INTEGER NOT NULL,
+                amount REAL NOT NULL,
+                description TEXT,
+                category TEXT DEFAULT 'other',
+                date TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        ''')
+
+        async with db.execute("PRAGMA table_info(expenses)") as cursor:
+            expense_columns = [row[1] for row in await cursor.fetchall()]
+
+        expense_migrations = {
+            'receipt_id': 'ALTER TABLE expenses ADD COLUMN receipt_id INTEGER',
+            'category': 'ALTER TABLE expenses ADD COLUMN category TEXT DEFAULT "other"',
+            'date': 'ALTER TABLE expenses ADD COLUMN date TEXT',
+            'created_at': 'ALTER TABLE expenses ADD COLUMN created_at TEXT',
+        }
+        for column, statement in expense_migrations.items():
+            if column not in expense_columns:
+                await db.execute(statement)
+
+        now = datetime.now().isoformat(timespec='seconds')
+        await db.execute('UPDATE expenses SET category = "other" WHERE category IS NULL OR category = ""')
+        await db.execute('UPDATE expenses SET date = ? WHERE date IS NULL OR date = ""', (now,))
+        await db.execute('UPDATE expenses SET created_at = date WHERE created_at IS NULL OR created_at = ""')
+
         # Attempt to add columns if they don't exist
         try:
             await db.execute('ALTER TABLE users ADD COLUMN language TEXT DEFAULT "en"')
@@ -135,3 +179,85 @@ async def get_balance_history(user_id: int):
                     continue
                 history.append((ts, balance))
             return history
+
+async def add_receipt_expenses(
+    user_id: int,
+    merchant: str = None,
+    purchased_at: str = None,
+    total: float = None,
+    currency: str = "EUR",
+    items: list[dict] = None,
+    source_type: str = "receipt",
+):
+    """Store a parsed receipt and its itemized expenses.
+
+    `items` entries are dictionaries with `amount`, `description`, and
+    `category`. Returns the created receipt id.
+    """
+    now = datetime.now().isoformat(timespec='seconds')
+    expense_date = purchased_at or now
+    items = items or []
+
+    async with aiosqlite.connect(DB_NAME) as db:
+        cursor = await db.execute('''
+            INSERT INTO receipts (user_id, merchant, purchased_at, total, currency, source_type, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (user_id, merchant, purchased_at, total, currency, source_type, now))
+        receipt_id = cursor.lastrowid
+
+        for item in items:
+            await db.execute('''
+                INSERT INTO expenses (receipt_id, user_id, amount, description, category, date, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                receipt_id,
+                user_id,
+                float(item["amount"]),
+                item.get("description"),
+                item.get("category") or "other",
+                expense_date,
+                now,
+            ))
+
+        await db.commit()
+        return receipt_id
+
+async def add_expense(user_id: int, amount: float, description: str = None, category: str = "other"):
+    now = datetime.now().isoformat(timespec='seconds')
+    async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute('''
+            INSERT INTO expenses (user_id, amount, description, category, date, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (user_id, amount, description, category, now, now))
+        await db.commit()
+
+async def get_today_expenses(user_id: int):
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    async with aiosqlite.connect(DB_NAME) as db:
+        async with db.execute('''
+            SELECT SUM(amount) FROM expenses
+            WHERE user_id = ? AND date(date) = ?
+        ''', (user_id, today_str)) as cursor:
+            row = await cursor.fetchone()
+            return row[0] if row and row[0] else 0.0
+
+async def get_today_expense_totals(user_id: int, now: datetime = None):
+    if now is None:
+        now = datetime.now()
+    today_str = now.strftime('%Y-%m-%d')
+    async with aiosqlite.connect(DB_NAME) as db:
+        async with db.execute('''
+            SELECT category, SUM(amount), COUNT(*) FROM expenses
+            WHERE user_id = ? AND date(date) = ?
+            GROUP BY category
+            ORDER BY SUM(amount) DESC
+        ''', (user_id, today_str)) as cursor:
+            rows = await cursor.fetchall()
+            return [
+                {
+                    "category": row[0] or "other",
+                    "amount": row[1] or 0.0,
+                    "count": row[2] or 0,
+                }
+                for row in rows
+            ]

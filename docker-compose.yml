@@ -6,4 +6,6 @@ services:
     environment:
       - DB_PATH=/data/finance_bot.db
       - BOT_TOKEN=${BOT_TOKEN}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_RECEIPT_MODEL=${OPENAI_RECEIPT_MODEL:-gpt-4o-mini}
     restart: unless-stopped

@@ -4,3 +4,6 @@ aiosqlite
 python-dotenv
 python-dateutil
 apscheduler
+openai
+Pillow
+PyMuPDF

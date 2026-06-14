@@ -9,6 +9,7 @@ A simple Telegram bot that helps you plan your daily spending limit.
 - Send your current balance to get a daily budget until your next income.
 - Persistent settings for each user.
 - **Daily Reminders**: The bot sends you a daily reminder at 11:00 AM to update your balance.
+- **Receipt Parsing**: Send a receipt photo, image file, or PDF; the bot extracts item lines and saves them by category.
 
 > This bot helps you stick to your financial goals and improve financial discipline.
 
@@ -24,6 +25,8 @@ A simple Telegram bot that helps you plan your daily spending limit.
    - Add your Telegram Bot Token:
      ```
      BOT_TOKEN=123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
+     OPENAI_API_KEY=sk-...
+     OPENAI_RECEIPT_MODEL=gpt-4o-mini
      ```
 
 3. **Run the Bot**:
@@ -35,5 +38,7 @@ A simple Telegram bot that helps you plan your daily spending limit.
 - `/start`: Initialize or update your settings (Income Day, Savings %).
 - `/balance <amount>`: Calculate budget for a specific balance (or just send the number).
 - `/settings`: Change your settings.
+- `/stats`: Show today's categorized receipt expenses.
 - `/help`: Get help.
 - **Send a number**: Calculate your daily budget based on your saved settings.
+- **Send a receipt photo/PDF**: Parse receipt items and categorize each expense.

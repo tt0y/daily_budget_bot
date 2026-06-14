@@ -3,6 +3,7 @@ import asyncio
 import logging
 import os
 import sys
+from io import BytesIO
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
@@ -15,8 +16,27 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from dotenv import load_dotenv
 
-from db import init_db, add_or_update_user, get_user, get_all_users, update_user_language, record_balance, get_balance_history
+from db import (
+    init_db,
+    add_or_update_user,
+    get_user,
+    get_all_users,
+    update_user_language,
+    record_balance,
+    get_balance_history,
+    add_receipt_expenses,
+    get_today_expense_totals,
+)
 from messages import get_text, get_trend_text, MESSAGES
+from receipt_parser import (
+    ReceiptData,
+    ReceiptParserError,
+    ReceiptParserUnavailable,
+    category_label,
+    is_supported_receipt_file,
+    parse_receipt_file,
+    summarize_categories,
+)
 
 load_dotenv()
 
@@ -185,16 +205,161 @@ async def process_savings_percent(message: Message, state: FSMContext) -> None:
     except ValueError:
         await message.answer(get_text("not_number", lang))
 
-@dp.message()
-async def calculate_budget_message(message: Message) -> None:
-    if message.text.startswith('/'): return
-    
+@dp.message(Command("stats"))
+async def command_stats_handler(message: Message) -> None:
     user_data = await get_user(message.from_user.id)
     if not user_data:
         await message.answer(get_text("start_first", "en"))
         return
 
     lang = user_data.get('language', 'en')
+    totals = await get_today_expense_totals(message.from_user.id)
+    if not totals:
+        await message.answer(get_text("stats_empty", lang))
+        return
+
+    lines = [get_text("stats_header", lang)]
+    grand_total = 0.0
+    for row in totals:
+        grand_total += row["amount"]
+        lines.append(
+            f"• {html.quote(category_label(row['category'], lang))}: "
+            f"{row['amount']:.2f} ({row['count']})"
+        )
+    lines.append(get_text("stats_total", lang, amount=f"{grand_total:.2f}"))
+    await message.answer("\n".join(lines), parse_mode=ParseMode.HTML)
+
+@dp.message(F.photo)
+async def receipt_photo_handler(message: Message) -> None:
+    await handle_receipt_upload(message, source_type="photo")
+
+@dp.message(F.document)
+async def receipt_document_handler(message: Message) -> None:
+    document = message.document
+    mime_type = (document.mime_type or "").lower()
+    filename = document.file_name or ""
+    if not is_supported_receipt_file(mime_type, filename):
+        user_data = await get_user(message.from_user.id)
+        lang = user_data.get('language', 'en') if user_data else 'en'
+        await message.answer(get_text("receipt_unsupported_file", lang))
+        return
+
+    await handle_receipt_upload(message, source_type="document")
+
+async def handle_receipt_upload(message: Message, source_type: str) -> None:
+    user_data = await get_user(message.from_user.id)
+    if not user_data:
+        await message.answer(get_text("start_first", "en"))
+        return
+
+    lang = user_data.get('language', 'en')
+    await message.answer(get_text("receipt_processing", lang))
+
+    try:
+        file_bytes, mime_type, filename = await download_receipt_file(message, source_type)
+        receipt = await parse_receipt_file(file_bytes, mime_type, filename)
+        await save_receipt(message.from_user.id, receipt, source_type)
+    except ReceiptParserUnavailable:
+        await message.answer(get_text("receipt_parser_unavailable", lang))
+        return
+    except ReceiptParserError as exc:
+        logging.warning("Failed to parse receipt for user %s: %s", message.from_user.id, exc)
+        await message.answer(get_text("receipt_parse_failed", lang))
+        return
+    except Exception:
+        logging.exception("Unexpected receipt processing error for user %s", message.from_user.id)
+        await message.answer(get_text("receipt_parse_failed", lang))
+        return
+
+    await message.answer(format_receipt_summary(receipt, lang), parse_mode=ParseMode.HTML)
+
+async def download_receipt_file(message: Message, source_type: str) -> tuple[bytes, str, str | None]:
+    buffer = BytesIO()
+    if source_type == "photo":
+        photo = message.photo[-1]
+        await message.bot.download(photo, destination=buffer)
+        return buffer.getvalue(), "image/jpeg", None
+
+    document = message.document
+    await message.bot.download(document, destination=buffer)
+    return buffer.getvalue(), document.mime_type or "application/octet-stream", document.file_name
+
+async def save_receipt(user_id: int, receipt: ReceiptData, source_type: str) -> int:
+    items = [
+        {
+            "amount": item.amount,
+            "description": item.name,
+            "category": item.category,
+        }
+        for item in receipt.items
+    ]
+    return await add_receipt_expenses(
+        user_id=user_id,
+        merchant=receipt.merchant,
+        purchased_at=receipt.purchased_at,
+        total=receipt.total,
+        currency=receipt.currency,
+        items=items,
+        source_type=source_type,
+    )
+
+def format_receipt_summary(receipt: ReceiptData, lang: str) -> str:
+    merchant = html.quote(receipt.merchant or get_text("receipt_unknown_store", lang))
+    total_value = receipt.total if receipt.total is not None else receipt.items_total
+    lines = [
+        get_text(
+            "receipt_saved",
+            lang,
+            merchant=merchant,
+            total=f"{total_value:.2f}",
+            currency=html.quote(receipt.currency),
+            count=len(receipt.items),
+        ),
+        "",
+        get_text("receipt_categories_header", lang),
+    ]
+
+    for category_id, amount, count in summarize_categories(receipt.items):
+        lines.append(f"• {html.quote(category_label(category_id, lang))}: {amount:.2f} ({count})")
+
+    shown_items = receipt.items[:8]
+    if shown_items:
+        lines.append("")
+        lines.append(get_text("receipt_items_header", lang))
+        for item in shown_items:
+            lines.append(
+                f"• {html.quote(item.name)} - {item.amount:.2f} "
+                f"-> {html.quote(category_label(item.category, lang))}"
+            )
+
+    hidden_count = len(receipt.items) - len(shown_items)
+    if hidden_count > 0:
+        lines.append(get_text("receipt_more_items", lang, count=hidden_count))
+
+    if receipt.total is not None and abs(receipt.items_total - receipt.total) > 0.05:
+        lines.append("")
+        lines.append(get_text(
+            "receipt_total_mismatch",
+            lang,
+            items_total=f"{receipt.items_total:.2f}",
+            receipt_total=f"{receipt.total:.2f}",
+        ))
+
+    return "\n".join(lines)
+
+@dp.message()
+async def calculate_budget_message(message: Message) -> None:
+    user_data = await get_user(message.from_user.id)
+    if not user_data:
+        await message.answer(get_text("start_first", "en"))
+        return
+
+    lang = user_data.get('language', 'en')
+
+    if not message.text:
+        await message.answer(get_text("unsupported_message", lang))
+        return
+    if message.text.startswith('/'): return
 
     try:
         current_balance = float(message.text)

@@ -21,9 +21,11 @@ MESSAGES = {
             "2. You send me your <b>Current Balance</b>.\n"
             "3. I calculate how much you can spend per day until your next income, subtracting your target savings goal.\n"
             "4. Send your balance regularly and I'll also forecast how long your money will last at your current spending pace.\n\n"
+            "5. Send a receipt photo/PDF and I'll split its items into spending categories.\n\n"
             "Commands:\n"
             "/start - Initialize or update settings\n"
             "/balance &lt;amount&gt; - Calculate budget for a specific balance\n"
+            "/stats - Show today's receipt expenses by category\n"
             "/settings - Change your settings\n"
             "/language - Change language / Сменить язык\n"
             "/help - Show this help message"
@@ -42,7 +44,21 @@ MESSAGES = {
         "trend_risk": "⚠️ That's less than the {days} {days_word} until your next income — you risk going negative.",
         "trend_no_data": "📊 Not enough data for a trend yet — send one more balance reading and I'll estimate the dynamics.",
         "trend_no_spending": "📊 Your balance isn't dropping — no spending detected yet.",
-        "trend_depleted": "⚠️ At the current balance the money has already run out."
+        "trend_depleted": "⚠️ At the current balance the money has already run out.",
+        "receipt_processing": "I’m reading the receipt and sorting items into categories...",
+        "receipt_parser_unavailable": "Receipt parsing is not configured yet. Add OPENAI_API_KEY to the bot environment and restart it.",
+        "receipt_parse_failed": "I couldn't read this receipt clearly. Please try a sharper photo or a PDF.",
+        "receipt_unsupported_file": "Please send a receipt as a photo, image file, or PDF.",
+        "receipt_unknown_store": "Unknown store",
+        "receipt_saved": "✅ Receipt saved: <b>{merchant}</b>\nTotal: <b>{total} {currency}</b>\nItems: <b>{count}</b>",
+        "receipt_categories_header": "<b>By category:</b>",
+        "receipt_items_header": "<b>Recognized items:</b>",
+        "receipt_more_items": "...and {count} more",
+        "receipt_total_mismatch": "Check the total: items add up to {items_total}, receipt total is {receipt_total}.",
+        "stats_header": "📊 <b>Today's categories</b>",
+        "stats_empty": "No receipt expenses saved today yet.",
+        "stats_total": "<b>Total: {amount}</b>",
+        "unsupported_message": "Send me a number for your current balance, or a receipt photo/PDF to categorize expenses."
     },
     "ru": {
         "welcome_back": "Привет, <b>{name}</b>! С возвращением. Отправь мне текущий баланс, чтобы рассчитать дневной бюджет.",
@@ -66,9 +82,11 @@ MESSAGES = {
             "2. Ты отправляешь мне <b>Текущий баланс</b>.\n"
             "3. Я рассчитываю, сколько можно тратить в день до следующего дохода, вычитая целевые сбережения.\n"
             "4. Присылай баланс регулярно — и я ещё спрогнозирую, на сколько хватит денег при текущем темпе трат.\n\n"
+            "5. Пришли фото/PDF чека — я разложу позиции по категориям расходов.\n\n"
             "Команды:\n"
             "/start - Начать или изменить настройки\n"
             "/balance &lt;сумма&gt; - Рассчитать бюджет для конкретной суммы\n"
+            "/stats - Расходы за сегодня по категориям\n"
             "/settings - Изменить настройки\n"
             "/language - Change language / Сменить язык\n"
             "/help - Показать это сообщение"
@@ -87,7 +105,21 @@ MESSAGES = {
         "trend_risk": "⚠️ Это меньше, чем {days} {days_word} до следующего дохода — рискуешь уйти в минус.",
         "trend_no_data": "📊 Пока мало данных для тренда — пришли ещё одно значение баланса, и я оценю динамику.",
         "trend_no_spending": "📊 Баланс не снижается — расходов пока не вижу.",
-        "trend_depleted": "⚠️ При текущем балансе денег уже не осталось."
+        "trend_depleted": "⚠️ При текущем балансе денег уже не осталось.",
+        "receipt_processing": "Распознаю чек и раскладываю позиции по категориям...",
+        "receipt_parser_unavailable": "Распознавание чеков ещё не настроено. Добавь OPENAI_API_KEY в окружение бота и перезапусти его.",
+        "receipt_parse_failed": "Не смог уверенно прочитать этот чек. Попробуй более четкое фото или PDF.",
+        "receipt_unsupported_file": "Пришли чек как фото, файл-картинку или PDF.",
+        "receipt_unknown_store": "Магазин не распознан",
+        "receipt_saved": "✅ Чек сохранен: <b>{merchant}</b>\nИтого: <b>{total} {currency}</b>\nПозиций: <b>{count}</b>",
+        "receipt_categories_header": "<b>По категориям:</b>",
+        "receipt_items_header": "<b>Распознанные позиции:</b>",
+        "receipt_more_items": "...и еще {count}",
+        "receipt_total_mismatch": "Проверь сумму: позиции дают {items_total}, а итог чека {receipt_total}.",
+        "stats_header": "📊 <b>Категории за сегодня</b>",
+        "stats_empty": "За сегодня пока нет сохраненных расходов из чеков.",
+        "stats_total": "<b>Всего: {amount}</b>",
+        "unsupported_message": "Пришли число для текущего баланса или фото/PDF чека для разбивки расходов."
     }
 }
 
