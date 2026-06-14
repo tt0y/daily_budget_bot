@@ -24,12 +24,13 @@ MESSAGES = {
             "5. Send a receipt photo/PDF and I'll split its items into spending categories.\n\n"
             "Examples:\n"
             "• Send <code>1000</code> or <code>/balance 1000</code> to update your current balance.\n"
+            "• Send <code>20 euro at the barber</code> or <code>10 euro for pet-project hosting</code> to save a manual expense.\n"
             "• Send a receipt as a photo, image file, or PDF to save its itemized expenses.\n"
-            "• Send <code>/stats</code> to see today's saved receipt expenses by category.\n\n"
+            "• Send <code>/stats</code> to see today's saved expenses by category.\n\n"
             "Commands:\n"
             "/start - Initialize or update settings\n"
             "/balance &lt;amount&gt; - Calculate budget for a specific balance\n"
-            "/stats - Show today's saved receipt expenses grouped by category\n"
+            "/stats - Show today's saved expenses grouped by category\n"
             "/settings - Change your settings\n"
             "/language - Change language / Сменить язык\n"
             "/help - Show this help message"
@@ -60,16 +61,25 @@ MESSAGES = {
         "receipt_more_items": "...and {count} more",
         "receipt_total_mismatch": "Check the total: items add up to {items_total}, receipt total is {receipt_total}.",
         "stats_header": "📊 <b>Today's categories</b>",
-        "stats_empty": "No receipt expenses saved today yet.",
+        "stats_empty": "No expenses saved today yet.",
         "stats_total": "<b>Total: {amount}</b>",
-        "unsupported_message": "Send me a number for your current balance, or a receipt photo/PDF to categorize expenses.",
+        "unsupported_message": "Send me a number for your current balance, a manual expense like <code>20 euro at the barber</code>, or a receipt photo/PDF.",
+        "manual_expense_added": "✅ Expense saved: <b>{amount}</b>\nCategory: <b>{category}</b>\nDescription: {description}",
         "btn_stats_today": "📊 Today's stats",
         "btn_receipt_help": "🧾 Receipt example",
+        "btn_expense_help": "✍️ Expense example",
         "btn_balance_help": "💰 Balance example",
         "help_receipt_example": (
             "Send a receipt as a regular photo, image file, or PDF.\n\n"
             "I will extract line items, assign each one to a category, save them as expenses, "
             "and show a summary by category."
+        ),
+        "help_expense_example": (
+            "Send a short expense in plain text:\n"
+            "<code>20 euro at the barber</code>\n"
+            "<code>10 euro for pet-project hosting</code>\n"
+            "<code>5 euro for fruit</code>\n\n"
+            "I will save it today and choose the closest category."
         ),
         "help_balance_example": (
             "Send your balance as a plain number:\n"
@@ -103,12 +113,13 @@ MESSAGES = {
             "5. Пришли фото/PDF чека — я разложу позиции по категориям расходов.\n\n"
             "Примеры:\n"
             "• Пришли <code>1000</code> или <code>/balance 1000</code>, чтобы обновить текущий баланс.\n"
+            "• Пришли <code>20 евро в парикмахерской</code> или <code>10 евро на хостинг пет-проекта</code>, чтобы сохранить ручной расход.\n"
             "• Пришли чек обычным фото, файлом-картинкой или PDF — я сохраню позиции как расходы.\n"
             "• Пришли <code>/stats</code>, чтобы увидеть сохраненные расходы за сегодня по категориям.\n\n"
             "Команды:\n"
             "/start - Начать или изменить настройки\n"
             "/balance &lt;сумма&gt; - Рассчитать бюджет для конкретной суммы\n"
-            "/stats - Сохраненные расходы из чеков за сегодня, сгруппированные по категориям\n"
+            "/stats - Сохраненные расходы за сегодня, сгруппированные по категориям\n"
             "/settings - Изменить настройки\n"
             "/language - Change language / Сменить язык\n"
             "/help - Показать это сообщение"
@@ -139,16 +150,26 @@ MESSAGES = {
         "receipt_more_items": "...и еще {count}",
         "receipt_total_mismatch": "Проверь сумму: позиции дают {items_total}, а итог чека {receipt_total}.",
         "stats_header": "📊 <b>Категории за сегодня</b>",
-        "stats_empty": "За сегодня пока нет сохраненных расходов из чеков.",
+        "stats_empty": "За сегодня пока нет сохраненных расходов.",
         "stats_total": "<b>Всего: {amount}</b>",
-        "unsupported_message": "Пришли число для текущего баланса или фото/PDF чека для разбивки расходов.",
+        "unsupported_message": "Пришли число для текущего баланса, ручной расход вроде <code>20 евро в парикмахерской</code> или фото/PDF чека.",
+        "manual_expense_added": "✅ Расход сохранен: <b>{amount}</b>\nКатегория: <b>{category}</b>\nОписание: {description}",
         "btn_stats_today": "📊 Статистика за сегодня",
         "btn_receipt_help": "🧾 Пример чека",
+        "btn_expense_help": "✍️ Пример расхода",
         "btn_balance_help": "💰 Пример баланса",
         "help_receipt_example": (
             "Пришли чек обычным фото, файлом-картинкой или PDF.\n\n"
             "Я распознаю позиции, назначу каждой категорию, сохраню их как расходы "
             "и покажу сводку по категориям."
+        ),
+        "help_expense_example": (
+            "Пришли короткий расход обычным текстом:\n"
+            "<code>20 евро в парикмахерской</code>\n"
+            "<code>10 евро на хостинг пет-проекта</code>\n"
+            "<code>5 евро на фрукты</code>\n"
+            "<code>7 евро на канцелярию</code>\n\n"
+            "Я сохраню его сегодняшней датой и подберу ближайшую категорию."
         ),
         "help_balance_example": (
             "Пришли баланс обычным числом:\n"

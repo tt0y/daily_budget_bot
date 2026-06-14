@@ -26,7 +26,9 @@ from db import (
     get_balance_history,
     add_receipt_expenses,
     get_today_expense_totals,
+    add_expense,
 )
+from expense_parser import parse_manual_expense
 from messages import get_text, get_trend_text, MESSAGES
 from receipt_parser import (
     ReceiptData,
@@ -66,6 +68,9 @@ def get_help_keyboard(lang: str):
         ],
         [
             InlineKeyboardButton(text=get_text("btn_receipt_help", lang), callback_data="help_receipt"),
+            InlineKeyboardButton(text=get_text("btn_expense_help", lang), callback_data="help_expense")
+        ],
+        [
             InlineKeyboardButton(text=get_text("btn_balance_help", lang), callback_data="help_balance")
         ],
     ])
@@ -142,6 +147,8 @@ async def help_callback_handler(callback: CallbackQuery):
             await callback.message.answer(stats_text, parse_mode=ParseMode.HTML)
     elif action == "receipt":
         await callback.message.answer(get_text("help_receipt_example", lang), parse_mode=ParseMode.HTML)
+    elif action == "expense":
+        await callback.message.answer(get_text("help_expense_example", lang), parse_mode=ParseMode.HTML)
     elif action == "balance":
         await callback.message.answer(get_text("help_balance_example", lang), parse_mode=ParseMode.HTML)
 
@@ -398,6 +405,26 @@ async def calculate_budget_message(message: Message) -> None:
     try:
         current_balance = float(message.text)
     except ValueError:
+        expense = parse_manual_expense(message.text)
+        if expense:
+            await add_expense(
+                message.from_user.id,
+                expense.amount,
+                expense.description,
+                expense.category,
+            )
+            await message.answer(
+                get_text(
+                    "manual_expense_added",
+                    lang,
+                    amount=f"{expense.amount:.2f}",
+                    description=html.quote(expense.description),
+                    category=html.quote(category_label(expense.category, lang)),
+                ),
+                parse_mode=ParseMode.HTML,
+            )
+            return
+
         await message.answer(get_text("invalid_balance", lang))
         return
 
