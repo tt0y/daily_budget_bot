@@ -78,21 +78,65 @@ def get_language_keyboard():
     ])
     return keyboard
 
-def get_help_keyboard(lang: str):
+def get_main_menu_keyboard(lang: str):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text=get_text("btn_stats_today", lang), callback_data="help_stats")
+            InlineKeyboardButton(text=get_text("btn_menu_balance", lang), callback_data="menu_balance"),
+            InlineKeyboardButton(text=get_text("btn_menu_expense", lang), callback_data="menu_expense")
         ],
         [
-            InlineKeyboardButton(text=get_text("btn_stats_month", lang), callback_data="help_stats_month"),
-            InlineKeyboardButton(text=get_text("btn_stats_all", lang), callback_data="help_stats_all")
+            InlineKeyboardButton(text=get_text("btn_menu_receipt", lang), callback_data="menu_receipt"),
+            InlineKeyboardButton(text=get_text("btn_menu_stats", lang), callback_data="menu_stats")
         ],
         [
-            InlineKeyboardButton(text=get_text("btn_receipt_help", lang), callback_data="help_receipt"),
-            InlineKeyboardButton(text=get_text("btn_expense_help", lang), callback_data="help_expense")
+            InlineKeyboardButton(text=get_text("btn_menu_settings", lang), callback_data="menu_settings"),
+            InlineKeyboardButton(text=get_text("btn_menu_language", lang), callback_data="menu_language")
+        ],
+    ])
+    return keyboard
+
+def get_back_keyboard(lang: str):
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text=get_text("btn_menu_back", lang), callback_data="menu_main")
+        ],
+    ])
+    return keyboard
+
+def get_stats_menu_keyboard(lang: str):
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text=get_text("btn_stats_today", lang), callback_data="menu_stats_today")
         ],
         [
-            InlineKeyboardButton(text=get_text("btn_balance_help", lang), callback_data="help_balance")
+            InlineKeyboardButton(text=get_text("btn_stats_month", lang), callback_data="menu_stats_month"),
+            InlineKeyboardButton(text=get_text("btn_stats_all", lang), callback_data="menu_stats_all")
+        ],
+        [
+            InlineKeyboardButton(text=get_text("btn_menu_back", lang), callback_data="menu_main")
+        ],
+    ])
+    return keyboard
+
+def get_settings_menu_keyboard(lang: str):
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text=get_text("btn_settings_start", lang), callback_data="menu_settings_start")
+        ],
+        [
+            InlineKeyboardButton(text=get_text("btn_menu_back", lang), callback_data="menu_main")
+        ],
+    ])
+    return keyboard
+
+def get_language_menu_keyboard(lang: str):
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text=MESSAGES["en"]["btn_en"], callback_data="lang_en"),
+            InlineKeyboardButton(text=MESSAGES["ru"]["btn_ru"], callback_data="lang_ru")
+        ],
+        [
+            InlineKeyboardButton(text=get_text("btn_menu_back", lang), callback_data="menu_main")
         ],
     ])
     return keyboard
@@ -117,8 +161,11 @@ async def command_help_handler(message: Message) -> None:
     user_data = await get_user(message.from_user.id)
     lang = user_data.get('language', 'en') if user_data else 'en'
     
-    help_text = get_text("help_text", lang)
-    await message.answer(help_text, parse_mode=ParseMode.HTML, reply_markup=get_help_keyboard(lang))
+    await message.answer(
+        get_text("menu_main_text", lang),
+        parse_mode=ParseMode.HTML,
+        reply_markup=get_main_menu_keyboard(lang)
+    )
 
 @dp.message(Command("language"))
 async def command_language_handler(message: Message, state: FSMContext) -> None:
@@ -154,31 +201,68 @@ async def language_callback_handler(callback: CallbackQuery, state: FSMContext):
         await state.set_state(Settings.income_day)
         await callback.answer()
 
+@dp.callback_query(F.data.startswith("menu_"))
 @dp.callback_query(F.data.startswith("help_"))
-async def help_callback_handler(callback: CallbackQuery):
+async def menu_callback_handler(callback: CallbackQuery, state: FSMContext):
     user_data = await get_user(callback.from_user.id)
     lang = user_data.get('language', 'en') if user_data else 'en'
-    action = callback.data.split("_", 1)[1]
+    prefix, action = callback.data.split("_", 1)
 
-    if action.startswith("stats"):
+    if prefix == "help":
+        action = {
+            "stats": "stats_today",
+            "stats_month": "stats_month",
+            "stats_all": "stats_all",
+            "receipt": "receipt",
+            "expense": "expense",
+            "balance": "balance",
+        }.get(action, action)
+
+    if action == "main":
+        await edit_menu_message(
+            callback,
+            get_text("menu_main_text", lang),
+            get_main_menu_keyboard(lang),
+        )
+    elif action == "stats":
+        await edit_menu_message(
+            callback,
+            get_text("menu_stats_text", lang),
+            get_stats_menu_keyboard(lang),
+        )
+    elif action.startswith("stats"):
         if not user_data:
             await callback.message.answer(get_text("start_first", "en"))
         else:
             period = {
-                "stats": "added_today",
+                "stats_today": "added_today",
                 "stats_month": "expense_month",
                 "stats_all": "all",
             }.get(action, "added_today")
             stats_text = await build_stats_text(callback.from_user.id, lang, period)
-            await callback.message.answer(stats_text, parse_mode=ParseMode.HTML)
+            await edit_menu_message(callback, stats_text, get_back_keyboard(lang))
     elif action == "receipt":
-        await callback.message.answer(get_text("help_receipt_example", lang), parse_mode=ParseMode.HTML)
+        await edit_menu_message(callback, get_text("help_receipt_example", lang), get_back_keyboard(lang))
     elif action == "expense":
-        await callback.message.answer(get_text("help_expense_example", lang), parse_mode=ParseMode.HTML)
+        await edit_menu_message(callback, get_text("help_expense_example", lang), get_back_keyboard(lang))
     elif action == "balance":
-        await callback.message.answer(get_text("help_balance_example", lang), parse_mode=ParseMode.HTML)
+        await edit_menu_message(callback, get_text("help_balance_example", lang), get_back_keyboard(lang))
+    elif action == "settings":
+        await edit_menu_message(callback, get_text("menu_settings_text", lang), get_settings_menu_keyboard(lang))
+    elif action == "settings_start":
+        await state.set_state(Settings.income_day)
+        await state.update_data(language=lang)
+        await callback.message.answer(get_text("update_settings", lang))
+    elif action == "language":
+        await edit_menu_message(callback, get_text("menu_language_text", lang), get_language_menu_keyboard(lang))
 
     await callback.answer()
+
+async def edit_menu_message(callback: CallbackQuery, text: str, keyboard: InlineKeyboardMarkup):
+    try:
+        await callback.message.edit_text(text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+    except Exception:
+        await callback.message.answer(text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
 
 @dp.message(Command("balance"))
 async def command_balance_handler(message: Message, command: Command = None) -> None:

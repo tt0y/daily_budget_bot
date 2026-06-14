@@ -75,9 +75,36 @@ MESSAGES = {
         "btn_stats_today": "📊 Today's stats",
         "btn_stats_month": "📅 Month",
         "btn_stats_all": "All",
+        "btn_menu_balance": "💰 Balance",
+        "btn_menu_expense": "✍️ Expense",
+        "btn_menu_receipt": "🧾 Receipt",
+        "btn_menu_stats": "📊 Stats",
+        "btn_menu_settings": "⚙️ Settings",
+        "btn_menu_language": "🌐 Language",
+        "btn_menu_back": "Back",
+        "btn_settings_start": "Change settings",
         "btn_receipt_help": "🧾 Receipt example",
         "btn_expense_help": "✍️ Expense example",
         "btn_balance_help": "💰 Balance example",
+        "menu_main_text": (
+            "<b>Main menu</b>\n\n"
+            "Choose what you want to do:"
+        ),
+        "menu_stats_text": (
+            "<b>Stats</b>\n\n"
+            "Choose a period:\n"
+            "• Today - expenses added today.\n"
+            "• Month - current month by expense date.\n"
+            "• All - everything saved."
+        ),
+        "menu_settings_text": (
+            "<b>Settings</b>\n\n"
+            "Update income day, expected monthly income, and savings percentage."
+        ),
+        "menu_language_text": (
+            "<b>Language</b>\n\n"
+            "Choose the bot language:"
+        ),
         "help_receipt_example": (
             "Send a receipt as a regular photo, image file, or PDF.\n\n"
             "I will extract line items, assign each one to a category, save them as expenses, "
@@ -173,9 +200,36 @@ MESSAGES = {
         "btn_stats_today": "📊 Статистика за сегодня",
         "btn_stats_month": "📅 Месяц",
         "btn_stats_all": "Всё",
+        "btn_menu_balance": "💰 Баланс",
+        "btn_menu_expense": "✍️ Расход",
+        "btn_menu_receipt": "🧾 Чек",
+        "btn_menu_stats": "📊 Статистика",
+        "btn_menu_settings": "⚙️ Настройки",
+        "btn_menu_language": "🌐 Язык",
+        "btn_menu_back": "Назад",
+        "btn_settings_start": "Изменить настройки",
         "btn_receipt_help": "🧾 Пример чека",
         "btn_expense_help": "✍️ Пример расхода",
         "btn_balance_help": "💰 Пример баланса",
+        "menu_main_text": (
+            "<b>Главное меню</b>\n\n"
+            "Выбери, что хочешь сделать:"
+        ),
+        "menu_stats_text": (
+            "<b>Статистика</b>\n\n"
+            "Выбери период:\n"
+            "• Сегодня - расходы, добавленные сегодня.\n"
+            "• Месяц - текущий месяц по датам расходов.\n"
+            "• Всё - все сохраненные расходы."
+        ),
+        "menu_settings_text": (
+            "<b>Настройки</b>\n\n"
+            "Здесь можно изменить день дохода, ожидаемый ежемесячный доход и процент сбережений."
+        ),
+        "menu_language_text": (
+            "<b>Язык</b>\n\n"
+            "Выбери язык бота:"
+        ),
         "help_receipt_example": (
             "Пришли чек обычным фото, файлом-картинкой или PDF.\n\n"
             "Я распознаю позиции, назначу каждой категорию, сохраню их как расходы "
