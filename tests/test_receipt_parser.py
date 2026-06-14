@@ -57,6 +57,7 @@ class TestReceiptParser(unittest.TestCase):
                 {"name": "Bread", "amount": 1.5, "category": "groceries"},
                 {"name": "Soap", "amount": 4.0, "category": "home"},
                 {"name": "Cheese", "amount": 3.0, "category": "groceries"},
+                {"name": "Hosting pet project", "amount": 2.0, "category": "pet project"},
             ]
         })
 
@@ -65,6 +66,7 @@ class TestReceiptParser(unittest.TestCase):
         self.assertEqual(summary[0], ("groceries", 4.5, 2))
         self.assertEqual(summary[1], ("home", 4.0, 1))
         self.assertEqual(category_label("groceries", "ru"), "Продукты")
+        self.assertEqual(category_label("pet_project", "ru"), "Pet project")
 
 
 class TestReceiptDatabase(unittest.IsolatedAsyncioTestCase):
@@ -101,6 +103,55 @@ class TestReceiptDatabase(unittest.IsolatedAsyncioTestCase):
         self.assertAlmostEqual(totals[0]["amount"], 6.99)
         self.assertEqual(totals[0]["count"], 2)
         self.assertEqual(totals[1]["category"], "home")
+
+    async def test_added_today_stats_use_created_at_not_receipt_date(self):
+        await db_module.add_receipt_expenses(
+            user_id=42,
+            merchant="Old receipt",
+            purchased_at="2026-06-02T12:00:00",
+            total=10.0,
+            currency="EUR",
+            items=[
+                {"description": "HOSTING PET PROJECT", "amount": 10.0, "category": "pet_project"},
+            ],
+        )
+
+        totals = await db_module.get_expense_totals(user_id=42, period="added_today")
+
+        self.assertEqual(totals[0]["category"], "pet_project")
+        self.assertAlmostEqual(totals[0]["amount"], 10.0)
+
+    async def test_expense_month_stats_use_expense_date(self):
+        await db_module.add_receipt_expenses(
+            user_id=42,
+            merchant="June receipt",
+            purchased_at="2026-06-02T12:00:00",
+            total=10.0,
+            currency="EUR",
+            items=[
+                {"description": "HOSTING PET PROJECT", "amount": 10.0, "category": "pet_project"},
+            ],
+        )
+        await db_module.add_receipt_expenses(
+            user_id=42,
+            merchant="May receipt",
+            purchased_at="2026-05-31T12:00:00",
+            total=5.0,
+            currency="EUR",
+            items=[
+                {"description": "BOOK", "amount": 5.0, "category": "books"},
+            ],
+        )
+
+        totals = await db_module.get_expense_totals(
+            user_id=42,
+            period="expense_month",
+            now=datetime(2026, 6, 14),
+        )
+
+        self.assertEqual(len(totals), 1)
+        self.assertEqual(totals[0]["category"], "pet_project")
+        self.assertAlmostEqual(totals[0]["amount"], 10.0)
 
 
 if __name__ == '__main__':

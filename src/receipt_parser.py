@@ -34,6 +34,7 @@ CATEGORIES = [
     BudgetCategory("books", "Books", "Книги"),
     BudgetCategory("unknown", "Unknown", "Не помню"),
     BudgetCategory("entertainment", "Entertainment", "Развлечения"),
+    BudgetCategory("pet_project", "Pet project", "Pet project"),
     BudgetCategory("subscriptions", "Subscriptions", "Подписки"),
     BudgetCategory("credits", "Credits", "Кредиты"),
     BudgetCategory("clothes", "Clothes", "Одежда"),
@@ -71,6 +72,13 @@ CATEGORY_ALIASES.update({
     "быт": "home",
     "cosmetics": "beauty",
     "косметика": "beauty",
+    "pet-project": "pet_project",
+    "pet project": "pet_project",
+    "side project": "pet_project",
+    "пет-проект": "pet_project",
+    "пет проект": "pet_project",
+    "сайд-проект": "pet_project",
+    "сайд проект": "pet_project",
     "unknown": "unknown",
     "не помню": "unknown",
 })
@@ -348,6 +356,7 @@ def _receipt_prompt(filename: str | None) -> str:
         "Category hints: supermarket food/drinks/alcohol/water => groceries; "
         "soap, toilet paper, cleaning, reusable cups, home supplies => home; "
         "cosmetics/personal care => beauty; restaurant/coffee bar => cafe; "
+        "pet-project hosting, domains, tools, servers => pet_project; "
         "medicine/pharmacy => health; electronics/games/devices => tech; "
         "if truly impossible, use unknown."
     )

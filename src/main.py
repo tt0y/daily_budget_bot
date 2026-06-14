@@ -25,7 +25,7 @@ from db import (
     record_balance,
     get_balance_history,
     add_receipt_expenses,
-    get_today_expense_totals,
+    get_expense_totals,
     add_expense,
 )
 from expense_parser import parse_manual_expense
@@ -43,6 +43,23 @@ from receipt_parser import (
 load_dotenv()
 
 TOKEN = os.getenv("BOT_TOKEN")
+
+STATS_PERIOD_ALIASES = {
+    "": "added_today",
+    "today": "added_today",
+    "added": "added_today",
+    "uploaded": "added_today",
+    "сегодня": "added_today",
+    "добавлено": "added_today",
+    "month": "expense_month",
+    "monthly": "expense_month",
+    "месяц": "expense_month",
+    "за месяц": "expense_month",
+    "all": "all",
+    "total": "all",
+    "все": "all",
+    "всё": "all",
+}
 
 class Settings(StatesGroup):
     language_selection = State()
@@ -65,6 +82,10 @@ def get_help_keyboard(lang: str):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text=get_text("btn_stats_today", lang), callback_data="help_stats")
+        ],
+        [
+            InlineKeyboardButton(text=get_text("btn_stats_month", lang), callback_data="help_stats_month"),
+            InlineKeyboardButton(text=get_text("btn_stats_all", lang), callback_data="help_stats_all")
         ],
         [
             InlineKeyboardButton(text=get_text("btn_receipt_help", lang), callback_data="help_receipt"),
@@ -139,11 +160,16 @@ async def help_callback_handler(callback: CallbackQuery):
     lang = user_data.get('language', 'en') if user_data else 'en'
     action = callback.data.split("_", 1)[1]
 
-    if action == "stats":
+    if action.startswith("stats"):
         if not user_data:
             await callback.message.answer(get_text("start_first", "en"))
         else:
-            stats_text = await build_today_stats_text(callback.from_user.id, lang)
+            period = {
+                "stats": "added_today",
+                "stats_month": "expense_month",
+                "stats_all": "all",
+            }.get(action, "added_today")
+            stats_text = await build_stats_text(callback.from_user.id, lang, period)
             await callback.message.answer(stats_text, parse_mode=ParseMode.HTML)
     elif action == "receipt":
         await callback.message.answer(get_text("help_receipt_example", lang), parse_mode=ParseMode.HTML)
@@ -251,15 +277,25 @@ async def command_stats_handler(message: Message) -> None:
         return
 
     lang = user_data.get('language', 'en')
-    stats_text = await build_today_stats_text(message.from_user.id, lang)
+    stats_period = parse_stats_period(message.text)
+    if not stats_period:
+        await message.answer(get_text("stats_usage", lang), parse_mode=ParseMode.HTML)
+        return
+
+    stats_text = await build_stats_text(message.from_user.id, lang, stats_period)
     await message.answer(stats_text, parse_mode=ParseMode.HTML)
 
-async def build_today_stats_text(user_id: int, lang: str) -> str:
-    totals = await get_today_expense_totals(user_id)
-    if not totals:
-        return get_text("stats_empty", lang)
+def parse_stats_period(text: str | None) -> str | None:
+    parts = (text or "").split(maxsplit=1)
+    arg = parts[1].strip().lower() if len(parts) > 1 else ""
+    return STATS_PERIOD_ALIASES.get(arg)
 
-    lines = [get_text("stats_header", lang)]
+async def build_stats_text(user_id: int, lang: str, period: str) -> str:
+    totals = await get_expense_totals(user_id, period)
+    if not totals:
+        return get_text(f"stats_empty_{period}", lang)
+
+    lines = [get_text(f"stats_header_{period}", lang)]
     grand_total = 0.0
     for row in totals:
         grand_total += row["amount"]

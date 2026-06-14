@@ -15,6 +15,10 @@ class ParsedExpense:
 
 
 CATEGORY_KEYWORDS = {
+    "pet_project": (
+        "pet-project", "pet project", "side project", "side-project",
+        "пет-проект", "пет проект", "сайд-проект", "сайд проект",
+    ),
     "groceries": (
         "fruit", "fruits", "vegetable", "vegetables", "grocery", "groceries",
         "supermarket", "food", "water", "beer", "bread", "milk", "cheese",

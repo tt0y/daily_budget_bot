@@ -8,7 +8,7 @@ class TestExpenseParser(unittest.TestCase):
     def test_russian_examples_are_parsed_and_categorized(self):
         cases = [
             ("20 евро в парикмахерской", 20.0, "парикмахерской", "beauty"),
-            ("10 евро на хостинг пет-проекта", 10.0, "хостинг пет-проекта", "subscriptions"),
+            ("10 евро на хостинг пет-проекта", 10.0, "хостинг пет-проекта", "pet_project"),
             ("5 евро на фрукты", 5.0, "фрукты", "groceries"),
             ("7 евро на канцелярию", 7.0, "канцелярию", "education"),
         ]

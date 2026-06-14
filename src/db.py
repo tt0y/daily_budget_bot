@@ -2,6 +2,7 @@
 import aiosqlite
 import os
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 DB_NAME = os.getenv("DB_PATH", "finance_bot.db")
 
@@ -252,6 +253,48 @@ async def get_today_expense_totals(user_id: int, now: datetime = None):
             GROUP BY category
             ORDER BY SUM(amount) DESC
         ''', (user_id, today_str)) as cursor:
+            rows = await cursor.fetchall()
+            return [
+                {
+                    "category": row[0] or "other",
+                    "amount": row[1] or 0.0,
+                    "count": row[2] or 0,
+                }
+                for row in rows
+            ]
+
+async def get_expense_totals(user_id: int, period: str = "added_today", now: datetime = None):
+    if now is None:
+        now = datetime.now()
+
+    date_column = "created_at" if period == "added_today" else "date"
+    params = [user_id]
+    where = ["user_id = ?"]
+
+    if period == "added_today":
+        start_date = now.strftime('%Y-%m-%d')
+        end_date = (now + relativedelta(days=1)).strftime('%Y-%m-%d')
+        where.append(f"date({date_column}) >= ? AND date({date_column}) < ?")
+        params.extend([start_date, end_date])
+    elif period == "expense_month":
+        month_start = now.replace(day=1).strftime('%Y-%m-%d')
+        next_month = (now.replace(day=1) + relativedelta(months=1)).strftime('%Y-%m-%d')
+        where.append(f"date({date_column}) >= ? AND date({date_column}) < ?")
+        params.extend([month_start, next_month])
+    elif period == "all":
+        pass
+    else:
+        raise ValueError(f"Unsupported stats period: {period}")
+
+    query = f'''
+        SELECT category, SUM(amount), COUNT(*) FROM expenses
+        WHERE {' AND '.join(where)}
+        GROUP BY category
+        ORDER BY SUM(amount) DESC
+    '''
+
+    async with aiosqlite.connect(DB_NAME) as db:
+        async with db.execute(query, params) as cursor:
             rows = await cursor.fetchall()
             return [
                 {
