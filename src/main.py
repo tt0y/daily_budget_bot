@@ -733,7 +733,7 @@ async def main() -> None:
     
     from apscheduler.schedulers.asyncio import AsyncIOScheduler
     scheduler = AsyncIOScheduler()
-    scheduler.add_job(send_daily_reminders, 'cron', hour=11, minute=0, args=[bot])
+    # scheduler.add_job(send_daily_reminders, 'cron', hour=11, minute=0, args=[bot])
     scheduler.start()
 
     await dp.start_polling(bot)
