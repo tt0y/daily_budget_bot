@@ -39,8 +39,10 @@ try:
         add_receipt_expenses,
         get_expense_totals,
         add_expense,
+        add_income,
     )
     from expense_parser import parse_manual_expense
+    from income_parser import parse_manual_income
     from messages import get_text, get_trend_text, MESSAGES
     from receipt_formatter import format_receipt_summary, receipt_expense_rows
     from receipt_parser import (
@@ -68,8 +70,10 @@ except ImportError:
         add_receipt_expenses,
         get_expense_totals,
         add_expense,
+        add_income,
     )
     from .expense_parser import parse_manual_expense
+    from .income_parser import parse_manual_income
     from .messages import get_text, get_trend_text, MESSAGES
     from .receipt_formatter import format_receipt_summary, receipt_expense_rows
     from .receipt_parser import (
@@ -122,6 +126,7 @@ BOT_COMMANDS = [
     BotCommand(command="stats_year", description="Год / Year"),
     BotCommand(command="stats_all", description="Всё / All"),
     BotCommand(command="balance", description="Баланс / Balance"),
+    BotCommand(command="income", description="Доход / Income"),
     BotCommand(command="family", description="Семья / Family"),
     BotCommand(command="family_invite", description="Пригласить / Invite"),
     BotCommand(command="family_join", description="Войти в бюджет / Join"),
@@ -151,10 +156,13 @@ def get_main_menu_keyboard(lang: str):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text=get_text("btn_menu_balance", lang), callback_data="menu_balance"),
-            InlineKeyboardButton(text=get_text("btn_menu_expense", lang), callback_data="menu_expense")
+            InlineKeyboardButton(text=get_text("btn_menu_income", lang), callback_data="menu_income")
         ],
         [
-            InlineKeyboardButton(text=get_text("btn_menu_receipt", lang), callback_data="menu_receipt"),
+            InlineKeyboardButton(text=get_text("btn_menu_expense", lang), callback_data="menu_expense"),
+            InlineKeyboardButton(text=get_text("btn_menu_receipt", lang), callback_data="menu_receipt")
+        ],
+        [
             InlineKeyboardButton(text=get_text("btn_menu_stats", lang), callback_data="menu_stats")
         ],
         [
@@ -263,7 +271,7 @@ async def command_help_handler(message: Message) -> None:
     lang = user_data.get('language', 'en') if user_data else 'en'
     
     await message.answer(
-        get_text("menu_main_text", lang),
+        get_text("help_text", lang),
         parse_mode=ParseMode.HTML,
         reply_markup=get_main_menu_keyboard(lang)
     )
@@ -316,6 +324,7 @@ async def menu_callback_handler(callback: CallbackQuery, state: FSMContext):
             "stats_year": "stats_year",
             "stats_all": "stats_all",
             "receipt": "receipt",
+            "income": "income",
             "expense": "expense",
             "balance": "balance",
         }.get(action, action)
@@ -346,6 +355,8 @@ async def menu_callback_handler(callback: CallbackQuery, state: FSMContext):
             await edit_menu_message(callback, stats_text, get_back_keyboard(lang))
     elif action == "receipt":
         await edit_menu_message(callback, get_text("help_receipt_example", lang), get_back_keyboard(lang))
+    elif action == "income":
+        await edit_menu_message(callback, get_text("help_income_example", lang), get_back_keyboard(lang))
     elif action == "expense":
         await edit_menu_message(callback, get_text("help_expense_example", lang), get_back_keyboard(lang))
     elif action == "balance":
@@ -395,6 +406,26 @@ async def command_balance_handler(message: Message, command: Command = None) -> 
 
     current_balance = float(args[1])
     await run_calculation(message, user_data, current_balance, lang)
+
+@dp.message(Command("income"))
+async def command_income_handler(message: Message) -> None:
+    user_data = await get_user(message.from_user.id)
+    if not user_data:
+        await message.answer(get_text("start_first", detect_message_language(message)))
+        return
+
+    lang = user_data.get('language', 'en')
+    parts = (message.text or "").split(maxsplit=1)
+    if len(parts) < 2:
+        await message.answer(get_text("provide_income", lang), parse_mode=ParseMode.HTML)
+        return
+
+    income = parse_manual_income(parts[1], require_keyword=False)
+    if not income:
+        await message.answer(get_text("provide_income_args", lang), parse_mode=ParseMode.HTML)
+        return
+
+    await save_income_and_reply(message, income, lang)
 
 @dp.message(Command("settings"))
 async def command_settings_handler(message: Message, state: FSMContext) -> None:
@@ -542,6 +573,23 @@ async def command_stats_shortcut_handler(message: Message, period: str) -> None:
     lang = user_data.get('language', 'en')
     await send_stats(message, lang, period)
 
+async def save_income_and_reply(message: Message, income, lang: str) -> None:
+    description = income.description or get_text("income_default_description", lang)
+    await add_income(
+        message.from_user.id,
+        income.amount,
+        description,
+    )
+    await message.answer(
+        get_text(
+            "manual_income_added",
+            lang,
+            amount=f"{income.amount:.2f}",
+            description=html.quote(description),
+        ),
+        parse_mode=ParseMode.HTML,
+    )
+
 async def send_stats(message: Message, lang: str, period: str) -> None:
     stats_text = await build_stats_text(message.from_user.id, lang, period)
     await message.answer(stats_text, parse_mode=ParseMode.HTML)
@@ -650,6 +698,11 @@ async def calculate_budget_message(message: Message) -> None:
     try:
         current_balance = float(message.text)
     except ValueError:
+        income = parse_manual_income(message.text)
+        if income:
+            await save_income_and_reply(message, income, lang)
+            return
+
         expense = parse_manual_expense(message.text)
         if expense:
             await add_expense(

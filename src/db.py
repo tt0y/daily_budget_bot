@@ -366,9 +366,37 @@ async def init_db():
         await db.execute('UPDATE expenses SET date = ? WHERE date IS NULL OR date = ""', (now,))
         await db.execute('UPDATE expenses SET created_at = date WHERE created_at IS NULL OR created_at = ""')
 
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS incomes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                household_id INTEGER,
+                user_id INTEGER NOT NULL,
+                amount REAL NOT NULL,
+                description TEXT,
+                date TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+
+        income_columns = await _table_columns(db, "incomes")
+        income_migrations = {
+            "household_id": "household_id INTEGER",
+            "description": "description TEXT",
+            "date": "date TEXT",
+            "created_at": "created_at TEXT",
+        }
+        for column, definition in income_migrations.items():
+            await _ensure_column(db, "incomes", income_columns, column, definition)
+
+        await db.execute('UPDATE incomes SET date = ? WHERE date IS NULL OR date = ""', (now,))
+        await db.execute('UPDATE incomes SET created_at = date WHERE created_at IS NULL OR created_at = ""')
+
         await _backfill_household_id(db, "balance_history")
         await _backfill_household_id(db, "receipts")
         await _backfill_household_id(db, "expenses")
+        await _backfill_household_id(db, "incomes")
 
         await db.commit()
 
@@ -744,6 +772,85 @@ async def add_expense(
             (household_id, user_id, amount, description, category, now, now),
         )
         await db.commit()
+
+
+async def add_income(
+    user_id: int,
+    amount: float,
+    description: str = None,
+    household_id: int | None = None,
+):
+    now = _now_iso()
+    async with aiosqlite.connect(DB_NAME) as db:
+        if household_id is None:
+            household_id = await _resolve_active_household_id(db, user_id)
+        await db.execute(
+            """
+            INSERT INTO incomes (household_id, user_id, amount, description, date, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (household_id, user_id, amount, description, now, now),
+        )
+        await db.commit()
+
+
+async def get_income_totals(
+    user_id: int,
+    period: str = "added_today",
+    now: datetime = None,
+    household_id: int | None = None,
+):
+    if now is None:
+        now = datetime.now()
+
+    date_column = "created_at" if period == "added_today" else "date"
+
+    async with aiosqlite.connect(DB_NAME) as db:
+        if household_id is None:
+            household_id = await _resolve_active_household_id(db, user_id)
+
+        params = [household_id]
+        where = ["household_id = ?"]
+
+        if period == "added_today":
+            start_date = now.strftime("%Y-%m-%d")
+            end_date = (now + relativedelta(days=1)).strftime("%Y-%m-%d")
+            where.append(f"date({date_column}) >= ? AND date({date_column}) < ?")
+            params.extend([start_date, end_date])
+        elif period == "expense_month":
+            month_start = now.replace(day=1).strftime("%Y-%m-%d")
+            next_month = (now.replace(day=1) + relativedelta(months=1)).strftime("%Y-%m-%d")
+            where.append(f"date({date_column}) >= ? AND date({date_column}) < ?")
+            params.extend([month_start, next_month])
+        elif period == "expense_year":
+            year_start = now.replace(month=1, day=1).strftime("%Y-%m-%d")
+            next_year = (now.replace(month=1, day=1) + relativedelta(years=1)).strftime("%Y-%m-%d")
+            where.append(f"date({date_column}) >= ? AND date({date_column}) < ?")
+            params.extend([year_start, next_year])
+        elif period == "all":
+            pass
+        else:
+            raise ValueError(f"Unsupported income period: {period}")
+
+        query = f"""
+            SELECT description, SUM(amount), COUNT(*) FROM incomes
+            WHERE {' AND '.join(where)}
+            GROUP BY description
+            ORDER BY SUM(amount) DESC
+        """
+
+        async with db.execute(query, params) as cursor:
+            rows = await cursor.fetchall()
+        await db.commit()
+
+    return [
+        {
+            "description": row[0],
+            "amount": row[1] or 0.0,
+            "count": row[2] or 0,
+        }
+        for row in rows
+    ]
 
 
 async def get_today_expenses(user_id: int, household_id: int | None = None):

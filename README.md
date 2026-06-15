@@ -10,6 +10,7 @@ A simple Telegram bot that helps you plan your daily spending limit.
 - Persistent settings for each user.
 - **Daily Reminders**: The bot sends you a daily reminder at 11:00 AM to update your balance.
 - **Receipt Parsing**: Send a receipt photo, image file, or PDF; the bot extracts item lines and saves them by category.
+- **Manual Income**: Send `/income 3000 salary` or a short text like `salary 3000` and the bot saves it as income.
 - **Manual Expenses**: Send a short text like `20 euro at the barber` and the bot saves it in the closest category.
 - **Family Budget**: Invite another Telegram user to share one budget, stats, receipts, expenses, and balance history.
 
@@ -39,6 +40,7 @@ A simple Telegram bot that helps you plan your daily spending limit.
 ## Usage
 - `/start`: Initialize or update your settings (Income Day, Savings %).
 - `/balance <amount>`: Calculate budget for a specific balance (or just send the number).
+- `/income <amount> [description]`: Save an income entry for your current budget.
 - `/settings`: Change your settings.
 - `/stats`: Show expenses added today by category.
 - `/stats month`: Show current-month expenses by purchase/receipt date.
@@ -50,5 +52,6 @@ A simple Telegram bot that helps you plan your daily spending limit.
 - `/family_join <code>`: Join another user's family budget.
 - `/help`: Open the navigation menu with buttons for balance, expenses, receipts, stats, settings, and language.
 - **Send a number**: Calculate your daily budget based on your saved settings.
+- **Send manual income**: `/income 3000 salary`, `salary 3000`, `received 500 from client`.
 - **Send a manual expense**: `20 euro at the barber`, `10 euro for pet-project hosting`, `5 euro for fruit`.
 - **Send a receipt photo/PDF**: Parse receipt items and categorize each expense.

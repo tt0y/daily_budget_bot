@@ -24,6 +24,7 @@ MESSAGES = {
             "5. Send a receipt photo/PDF and I'll split its items into spending categories.\n\n"
             "Examples:\n"
             "• Send <code>1000</code> or <code>/balance 1000</code> to update your current balance.\n"
+            "• Send <code>/income 3000 salary</code> or <code>salary 3000</code> to save income.\n"
             "• Send <code>20 euro at the barber</code> or <code>10 euro for pet-project hosting</code> to save a manual expense.\n"
             "• Send a receipt as a photo, image file, or PDF to save its itemized expenses.\n"
             "• Send <code>/stats</code> to see expenses added today.\n"
@@ -33,6 +34,7 @@ MESSAGES = {
             "Commands:\n"
             "/start - Initialize or update settings\n"
             "/balance &lt;amount&gt; - Calculate budget for a specific balance\n"
+            "/income &lt;amount&gt; [description] - Save an income entry\n"
             "/stats [month|year|all] - Show saved expenses grouped by category\n"
             "/stats_month - Show the current month\n"
             "/stats_year - Show the current year\n"
@@ -46,6 +48,9 @@ MESSAGES = {
         ),
         "provide_balance_args": "Please provide a valid number, e.g., /balance 1000",
         "provide_balance": "Please provide your balance, e.g., /balance 1000",
+        "provide_income_args": "Please provide a valid income, e.g., <code>/income 3000 salary</code>",
+        "provide_income": "Please provide an income amount, e.g., <code>/income 3000 salary</code>",
+        "income_default_description": "Income",
         "invalid_format": "Invalid format.",
         "reminder": "Good morning! ☀️\nWhat is your current balance today? Send it to me to update your budget.",
         "choose_language": "Please choose your language / Пожалуйста, выберите язык:",
@@ -90,13 +95,15 @@ MESSAGES = {
         "family_no_members": "No members yet.",
         "family_role_owner": "owner",
         "family_role_member": "member",
-        "unsupported_message": "Send me a number for your current balance, a manual expense like <code>20 euro at the barber</code>, or a receipt photo/PDF.",
+        "unsupported_message": "Send me a number for your current balance, income like <code>salary 3000</code>, a manual expense like <code>20 euro at the barber</code>, or a receipt photo/PDF.",
+        "manual_income_added": "✅ Income saved: <b>{amount}</b>\nDescription: {description}",
         "manual_expense_added": "✅ Expense saved: <b>{amount}</b>\nCategory: <b>{category}</b>\nDescription: {description}",
         "btn_stats_today": "📊 Today's stats",
         "btn_stats_month": "📅 Month",
         "btn_stats_year": "Year",
         "btn_stats_all": "All",
         "btn_menu_balance": "💰 Balance",
+        "btn_menu_income": "Income",
         "btn_menu_expense": "✍️ Expense",
         "btn_menu_receipt": "🧾 Receipt",
         "btn_menu_stats": "📊 Stats",
@@ -132,6 +139,14 @@ MESSAGES = {
             "Send a receipt as a regular photo, image file, or PDF.\n\n"
             "I will extract line items, assign each one to a category, save them as expenses, "
             "and show a summary by category."
+        ),
+        "help_income_example": (
+            "Save income with a command:\n"
+            "<code>/income 3000 salary</code>\n"
+            "<code>/income 500 freelance</code>\n\n"
+            "Or send a short text with an income hint:\n"
+            "<code>salary 3000</code>\n"
+            "<code>received 500 from client</code>"
         ),
         "help_expense_example": (
             "Send a short expense in plain text:\n"
@@ -172,6 +187,7 @@ MESSAGES = {
             "5. Пришли фото/PDF чека — я разложу позиции по категориям расходов.\n\n"
             "Примеры:\n"
             "• Пришли <code>1000</code> или <code>/balance 1000</code>, чтобы обновить текущий баланс.\n"
+            "• Пришли <code>/income 3000 зарплата</code> или <code>зарплата 3000</code>, чтобы сохранить доход.\n"
             "• Пришли <code>20 евро в парикмахерской</code> или <code>10 евро на хостинг пет-проекта</code>, чтобы сохранить ручной расход.\n"
             "• Пришли чек обычным фото, файлом-картинкой или PDF — я сохраню позиции как расходы.\n"
             "• Пришли <code>/stats</code>, чтобы увидеть расходы, добавленные сегодня.\n"
@@ -181,6 +197,7 @@ MESSAGES = {
             "Команды:\n"
             "/start - Начать или изменить настройки\n"
             "/balance &lt;сумма&gt; - Рассчитать бюджет для конкретной суммы\n"
+            "/income &lt;сумма&gt; [описание] - Сохранить доход\n"
             "/stats [month|year|all] - Сохраненные расходы по категориям\n"
             "/stats_month - Статистика за текущий месяц\n"
             "/stats_year - Статистика за текущий год\n"
@@ -194,6 +211,9 @@ MESSAGES = {
         ),
         "provide_balance_args": "Пожалуйста, укажи число, например, /balance 1000",
         "provide_balance": "Пожалуйста, укажи баланс, например, /balance 1000",
+        "provide_income_args": "Пожалуйста, укажи корректный доход, например, <code>/income 3000 зарплата</code>",
+        "provide_income": "Пожалуйста, укажи сумму дохода, например, <code>/income 3000 зарплата</code>",
+        "income_default_description": "Доход",
         "invalid_format": "Неверный формат.",
         "reminder": "Доброе утро! ☀️\nКакой у тебя сегодня баланс? Отправь его мне, чтобы обновить бюджет.",
         "choose_language": "Please choose your language / Пожалуйста, выберите язык:",
@@ -238,13 +258,15 @@ MESSAGES = {
         "family_no_members": "Участников пока нет.",
         "family_role_owner": "владелец",
         "family_role_member": "участник",
-        "unsupported_message": "Пришли число для текущего баланса, ручной расход вроде <code>20 евро в парикмахерской</code> или фото/PDF чека.",
+        "unsupported_message": "Пришли число для текущего баланса, доход вроде <code>зарплата 3000</code>, ручной расход вроде <code>20 евро в парикмахерской</code> или фото/PDF чека.",
+        "manual_income_added": "✅ Доход сохранен: <b>{amount}</b>\nОписание: {description}",
         "manual_expense_added": "✅ Расход сохранен: <b>{amount}</b>\nКатегория: <b>{category}</b>\nОписание: {description}",
         "btn_stats_today": "📊 Статистика за сегодня",
         "btn_stats_month": "📅 Месяц",
         "btn_stats_year": "Год",
         "btn_stats_all": "Всё",
         "btn_menu_balance": "💰 Баланс",
+        "btn_menu_income": "Доход",
         "btn_menu_expense": "✍️ Расход",
         "btn_menu_receipt": "🧾 Чек",
         "btn_menu_stats": "📊 Статистика",
@@ -280,6 +302,14 @@ MESSAGES = {
             "Пришли чек обычным фото, файлом-картинкой или PDF.\n\n"
             "Я распознаю позиции, назначу каждой категорию, сохраню их как расходы "
             "и покажу сводку по категориям."
+        ),
+        "help_income_example": (
+            "Сохрани доход командой:\n"
+            "<code>/income 3000 зарплата</code>\n"
+            "<code>/income 500 фриланс</code>\n\n"
+            "Или пришли короткий текст с подсказкой, что это доход:\n"
+            "<code>зарплата 3000</code>\n"
+            "<code>получил 500 от клиента</code>"
         ),
         "help_expense_example": (
             "Пришли короткий расход обычным текстом:\n"

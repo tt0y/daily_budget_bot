@@ -47,13 +47,20 @@ class TestFamilyBudgetDatabase(unittest.IsolatedAsyncioTestCase):
 
         await db_module.add_expense(1001, 10, "Bread", "groceries")
         await db_module.add_expense(2002, 5, "Soap", "home")
+        await db_module.add_income(1001, 3000, "Salary")
+        await db_module.add_income(2002, 500, "Bonus")
 
         owner_totals = await db_module.get_expense_totals(1001, period="all")
         member_totals = await db_module.get_expense_totals(2002, period="all")
         totals_by_category = {row["category"]: row["amount"] for row in owner_totals}
+        owner_income_totals = await db_module.get_income_totals(1001, period="all")
+        member_income_totals = await db_module.get_income_totals(2002, period="all")
+        income_by_description = {row["description"]: row["amount"] for row in owner_income_totals}
 
         self.assertEqual(owner_totals, member_totals)
         self.assertEqual(totals_by_category, {"groceries": 10, "home": 5})
+        self.assertEqual(owner_income_totals, member_income_totals)
+        self.assertEqual(income_by_description, {"Salary": 3000, "Bonus": 500})
 
         await db_module.record_balance(1001, 1000, datetime(2026, 6, 15, 10, 0, 0))
         await db_module.record_balance(2002, 900, datetime(2026, 6, 16, 10, 0, 0))
@@ -176,12 +183,15 @@ class TestFamilyBudgetMigration(unittest.IsolatedAsyncioTestCase):
         user = await db_module.get_user(42)
         totals = await db_module.get_expense_totals(42, period="all")
         history = await db_module.get_balance_history(42)
+        await db_module.add_income(42, 500, "Migrated income")
+        income_totals = await db_module.get_income_totals(42, period="all")
 
         self.assertIsNotNone(user["household_id"])
         self.assertEqual(user["language"], "ru")
         self.assertEqual(user["income_day"], 15)
         self.assertEqual(totals[0]["amount"], 12.5)
         self.assertEqual([balance for _, balance in history], [1000])
+        self.assertEqual(income_totals[0]["amount"], 500)
 
 
 if __name__ == "__main__":
