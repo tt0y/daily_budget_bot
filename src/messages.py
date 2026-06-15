@@ -37,6 +37,9 @@ MESSAGES = {
             "/stats_month - Show the current month\n"
             "/stats_year - Show the current year\n"
             "/stats_all - Show all saved expenses\n"
+            "/family - Show your family budget\n"
+            "/family_invite - Create an invite code\n"
+            "/family_join &lt;code&gt; - Join a family budget\n"
             "/settings - Change your settings\n"
             "/language - Change language / Сменить язык\n"
             "/help - Show this help message"
@@ -79,6 +82,14 @@ MESSAGES = {
         "stats_empty_all": "No expenses saved yet.",
         "stats_total": "<b>Total: {amount}</b>",
         "stats_usage": "Use <code>/stats</code>, <code>/stats month</code>, <code>/stats year</code>, or <code>/stats all</code>.",
+        "family_info": "<b>Family budget</b>\nBudget: <b>{name}</b>\nMembers: <b>{count}</b>\n\n{members}\n\nUse <code>/family_invite</code> to invite someone.",
+        "family_invite_created": "Share this code with another person:\n<code>{code}</code>\n\nThey can join with:\n<code>/family_join {code}</code>",
+        "family_join_usage": "Send an invite code like this:\n<code>/family_join ABCD2345</code>",
+        "family_join_invalid": "I couldn't find a family budget with that invite code.",
+        "family_joined": "✅ Joined family budget: <b>{name}</b>.\nFrom now on, your expenses, receipts, stats, and balance readings use this shared budget.",
+        "family_no_members": "No members yet.",
+        "family_role_owner": "owner",
+        "family_role_member": "member",
         "unsupported_message": "Send me a number for your current balance, a manual expense like <code>20 euro at the barber</code>, or a receipt photo/PDF.",
         "manual_expense_added": "✅ Expense saved: <b>{amount}</b>\nCategory: <b>{category}</b>\nDescription: {description}",
         "btn_stats_today": "📊 Today's stats",
@@ -91,6 +102,7 @@ MESSAGES = {
         "btn_menu_stats": "📊 Stats",
         "btn_menu_settings": "⚙️ Settings",
         "btn_menu_language": "🌐 Language",
+        "btn_menu_family": "Family",
         "btn_menu_back": "Back",
         "btn_settings_start": "Change settings",
         "btn_receipt_help": "🧾 Receipt example",
@@ -173,6 +185,9 @@ MESSAGES = {
             "/stats_month - Статистика за текущий месяц\n"
             "/stats_year - Статистика за текущий год\n"
             "/stats_all - Все сохраненные расходы\n"
+            "/family - Семейный бюджет\n"
+            "/family_invite - Создать код приглашения\n"
+            "/family_join &lt;код&gt; - Присоединиться к семейному бюджету\n"
             "/settings - Изменить настройки\n"
             "/language - Change language / Сменить язык\n"
             "/help - Показать это сообщение"
@@ -215,6 +230,14 @@ MESSAGES = {
         "stats_empty_all": "Сохраненных расходов пока нет.",
         "stats_total": "<b>Всего: {amount}</b>",
         "stats_usage": "Используй <code>/stats</code>, <code>/stats month</code>, <code>/stats year</code> или <code>/stats all</code>.",
+        "family_info": "<b>Семейный бюджет</b>\nБюджет: <b>{name}</b>\nУчастников: <b>{count}</b>\n\n{members}\n\nИспользуй <code>/family_invite</code>, чтобы пригласить человека.",
+        "family_invite_created": "Отправь этот код другому человеку:\n<code>{code}</code>\n\nОн сможет присоединиться командой:\n<code>/family_join {code}</code>",
+        "family_join_usage": "Пришли код приглашения вот так:\n<code>/family_join ABCD2345</code>",
+        "family_join_invalid": "Не нашел семейный бюджет с таким кодом приглашения.",
+        "family_joined": "✅ Подключился к семейному бюджету: <b>{name}</b>.\nТеперь твои расходы, чеки, статистика и значения баланса относятся к этому общему бюджету.",
+        "family_no_members": "Участников пока нет.",
+        "family_role_owner": "владелец",
+        "family_role_member": "участник",
         "unsupported_message": "Пришли число для текущего баланса, ручной расход вроде <code>20 евро в парикмахерской</code> или фото/PDF чека.",
         "manual_expense_added": "✅ Расход сохранен: <b>{amount}</b>\nКатегория: <b>{category}</b>\nОписание: {description}",
         "btn_stats_today": "📊 Статистика за сегодня",
@@ -227,6 +250,7 @@ MESSAGES = {
         "btn_menu_stats": "📊 Статистика",
         "btn_menu_settings": "⚙️ Настройки",
         "btn_menu_language": "🌐 Язык",
+        "btn_menu_family": "Семья",
         "btn_menu_back": "Назад",
         "btn_settings_start": "Изменить настройки",
         "btn_receipt_help": "🧾 Пример чека",

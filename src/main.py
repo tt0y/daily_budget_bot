@@ -30,6 +30,10 @@ try:
         get_user,
         get_all_users,
         update_user_language,
+        get_active_household,
+        get_household_members,
+        get_or_create_household_invite_code,
+        join_household_by_invite,
         record_balance,
         get_balance_history,
         add_receipt_expenses,
@@ -55,6 +59,10 @@ except ImportError:
         get_user,
         get_all_users,
         update_user_language,
+        get_active_household,
+        get_household_members,
+        get_or_create_household_invite_code,
+        join_household_by_invite,
         record_balance,
         get_balance_history,
         add_receipt_expenses,
@@ -114,6 +122,9 @@ BOT_COMMANDS = [
     BotCommand(command="stats_year", description="Год / Year"),
     BotCommand(command="stats_all", description="Всё / All"),
     BotCommand(command="balance", description="Баланс / Balance"),
+    BotCommand(command="family", description="Семья / Family"),
+    BotCommand(command="family_invite", description="Пригласить / Invite"),
+    BotCommand(command="family_join", description="Войти в бюджет / Join"),
     BotCommand(command="settings", description="Настройки / Settings"),
     BotCommand(command="language", description="Язык / Language"),
     BotCommand(command="start", description="Старт / Start"),
@@ -149,6 +160,9 @@ def get_main_menu_keyboard(lang: str):
         [
             InlineKeyboardButton(text=get_text("btn_menu_settings", lang), callback_data="menu_settings"),
             InlineKeyboardButton(text=get_text("btn_menu_language", lang), callback_data="menu_language")
+        ],
+        [
+            InlineKeyboardButton(text=get_text("btn_menu_family", lang), callback_data="menu_family")
         ],
     ])
     return keyboard
@@ -201,6 +215,32 @@ def get_language_menu_keyboard(lang: str):
         ],
     ])
     return keyboard
+
+def detect_message_language(message: Message, fallback: str = "en") -> str:
+    language_code = (message.from_user.language_code or "").lower()
+    if language_code.startswith("ru"):
+        return "ru"
+    return fallback
+
+async def build_family_text(user_id: int, lang: str) -> str:
+    household = await get_active_household(user_id)
+    members = await get_household_members(user_id)
+    if not household:
+        return get_text("start_first", lang)
+
+    member_lines = []
+    for member in members:
+        role_text = get_text(f"family_role_{member['role']}", lang)
+        member_lines.append(f"• <code>{member['user_id']}</code> - {role_text}")
+
+    members_text = "\n".join(member_lines) if member_lines else get_text("family_no_members", lang)
+    return get_text(
+        "family_info",
+        lang,
+        name=html.quote(household["name"]),
+        count=len(members),
+        members=members_text,
+    )
 
 @dp.message(CommandStart())
 async def command_start_handler(message: Message, state: FSMContext) -> None:
@@ -312,6 +352,12 @@ async def menu_callback_handler(callback: CallbackQuery, state: FSMContext):
         await edit_menu_message(callback, get_text("help_balance_example", lang), get_back_keyboard(lang))
     elif action == "settings":
         await edit_menu_message(callback, get_text("menu_settings_text", lang), get_settings_menu_keyboard(lang))
+    elif action == "family":
+        if not user_data:
+            await callback.message.answer(get_text("start_first", "en"))
+        else:
+            family_text = await build_family_text(callback.from_user.id, lang)
+            await edit_menu_message(callback, family_text, get_back_keyboard(lang))
     elif action == "settings_start":
         await state.set_state(Settings.income_day)
         await state.update_data(language=lang)
@@ -415,6 +461,50 @@ async def process_savings_percent(message: Message, state: FSMContext) -> None:
             await message.answer(get_text("invalid_percent", lang))
     except ValueError:
         await message.answer(get_text("not_number", lang))
+
+@dp.message(Command("family"))
+async def command_family_handler(message: Message) -> None:
+    user_data = await get_user(message.from_user.id)
+    if not user_data:
+        await message.answer(get_text("start_first", detect_message_language(message)))
+        return
+
+    lang = user_data.get('language', 'en')
+    await message.answer(await build_family_text(message.from_user.id, lang), parse_mode=ParseMode.HTML)
+
+@dp.message(Command("family_invite"))
+async def command_family_invite_handler(message: Message) -> None:
+    user_data = await get_user(message.from_user.id)
+    if not user_data:
+        await message.answer(get_text("start_first", detect_message_language(message)))
+        return
+
+    lang = user_data.get('language', 'en')
+    invite_code = await get_or_create_household_invite_code(message.from_user.id)
+    await message.answer(
+        get_text("family_invite_created", lang, code=html.quote(invite_code)),
+        parse_mode=ParseMode.HTML,
+    )
+
+@dp.message(Command("family_join"))
+async def command_family_join_handler(message: Message) -> None:
+    user_data = await get_user(message.from_user.id)
+    lang = user_data.get('language', 'en') if user_data else detect_message_language(message)
+
+    parts = (message.text or "").split(maxsplit=1)
+    if len(parts) < 2:
+        await message.answer(get_text("family_join_usage", lang), parse_mode=ParseMode.HTML)
+        return
+
+    household = await join_household_by_invite(message.from_user.id, parts[1], language=lang)
+    if not household:
+        await message.answer(get_text("family_join_invalid", lang))
+        return
+
+    await message.answer(
+        get_text("family_joined", lang, name=html.quote(household["name"])),
+        parse_mode=ParseMode.HTML,
+    )
 
 @dp.message(Command("stats"))
 async def command_stats_handler(message: Message) -> None:
